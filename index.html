@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coding Assistant Onboarding</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script defer src="scripts.js"></script>
 </head>
 <body>
 
@@ -27,6 +28,7 @@
 
         <div id="optionsSection" class="mt-5 d-none">
             <h4>Select an Option</h4>
+            <button class="btn btn-success mt-2" onclick="approveServiceDesk()">Approve Service Desk Nomination</button>
             <button class="btn btn-success mt-2" onclick="showBulkUpload()">Bulk Upload Preapproved Nominations</button>
             <button class="btn btn-info mt-2" onclick="viewNominations()">View All Nominations</button>
             <button class="btn btn-danger mt-2" onclick="showRevoke()">Revoke Nomination</button>
@@ -54,8 +56,6 @@
             <button class="btn btn-danger mt-2" onclick="revokeNomination()">Revoke</button>
         </div>
     </div>
-
-    <script src="scripts.js"></script>
 
 </body>
 </html>
