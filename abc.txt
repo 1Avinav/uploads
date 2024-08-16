@@ -19,21 +19,27 @@ function showBulkUpload() {
     document.getElementById('bulkUploadSection').classList.remove('d-none');
 }
 
-// Handle bulk upload and create table from CSV file
+// Handle bulk upload and create table from API response
 function bulkUpload() {
     const csvFile = document.getElementById('csvFile').files[0];
     if (csvFile) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const csvContent = e.target.result;
-            const csvRows = csvContent.split('\n').filter(row => row.trim() !== '');
-            const parsedData = csvRows.slice(1).map(row => {
-                const [email, psid, level3, managerpsid] = row.split(',');
-                return { email, psid, level3, managerpsid };
-            });
-            createBulkUploadTable(parsedData);
-        };
-        reader.readAsText(csvFile);
+        const formData = new FormData();
+        formData.append('file', csvFile);
+
+        fetch('/api/nominees/bulkupload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                createBulkUploadTable(data.nominations);
+                alert('File uploaded and data processed successfully.');
+            } else {
+                alert('Error processing file: ' + data.message);
+            }
+        })
+        .catch(error => console.error('Error uploading file:', error));
     } else {
         alert('Please upload a CSV file.');
     }
