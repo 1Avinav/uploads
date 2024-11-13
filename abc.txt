@@ -1,29 +1,46 @@
-package com.example.myapp;
+package com.example.myapp.controller;
 
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import com.example.myapp.service.DatabaseConnectionService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class DatabaseConnectionController {
+
+    @Autowired
+    private DatabaseConnectionService databaseConnectionService;
+
+    @GetMapping("/test-database-connection")
+    public String testDatabaseConnection() {
+        boolean isConnected = databaseConnectionService.testConnection();
+        if (isConnected) {
+            return "Database connection successful!";
+        } else {
+            return "Failed to connect to the database!";
+        }
+    }
+}
+package com.example.myapp.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
 
-public class DatabaseConnectionTest {
+@Service
+public class DatabaseConnectionService {
 
-    public static void main(String[] args) {
-        // Load the Spring context from the application-context.xml
-        ApplicationContext context = new ClassPathXmlApplicationContext("application-context.xml");
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
-        // Retrieve the JdbcTemplate bean
-        JdbcTemplate jdbcTemplate = (JdbcTemplate) context.getBean("jdbcTemplate");
-
-        // Run a simple query to test the connection
+    public boolean testConnection() {
         try {
+            // Perform a simple query to check the connection
             Integer result = jdbcTemplate.queryForObject("SELECT 1", Integer.class);
-            if (result != null && result == 1) {
-                System.out.println("Database connection successful!");
-            } else {
-                System.out.println("Failed to connect to the database.");
-            }
+            return result != null && result == 1;
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("Database connection failed: " + e.getMessage());
+            return false;
         }
     }
 }
