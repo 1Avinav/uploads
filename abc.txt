@@ -1,60 +1,78 @@
-<dependencies>
-    <!-- Spring Boot Starter Web -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
+package com.example.demo.controller;
 
-    <!-- Spring Boot Starter Data JPA (for database integration) -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
+import com.example.demo.model.User;
+import com.example.demo.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
 
-    <!-- PostgreSQL Driver -->
-    <dependency>
-        <groupId>org.postgresql</groupId>
-        <artifactId>postgresql</artifactId>
-        <version>42.2.20</version>
-    </dependency>
+import java.util.List;
 
-    <!-- JJWT for handling JWTs -->
-    <dependency>
-        <groupId>io.jsonwebtoken</groupId>
-        <artifactId>jjwt</artifactId>
-        <version>0.11.5</version>
-    </dependency>
+@RestController
+public class UserController {
 
-    <!-- Spring Boot Starter Test (for testing) -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-test</artifactId>
-        <scope>test</scope>
-    </dependency>
-</dependencies>
-spring.datasource.url=jdbc:postgresql://localhost:5432/your_db_name
-spring.datasource.username=your_username
-spring.datasource.password=your_password
-spring.datasource.driver-class-name=org.postgresql.Driver
-spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
+    @Autowired
+    private UserService userService;
 
+    // Get all users
+    @GetMapping("/users")
+    public List<User> getAllUsers() {
+        return userService.getAllUsers();
+    }
 
-package com.example.jwt.model;
+    // Get user by userId
+    @GetMapping("/users/{userId}")
+    public User getUserById(@PathVariable String userId) {
+        return userService.getUserById(userId);
+    }
+}
+package com.example.demo.service;
 
-import javax.persistence.ElementCollection;
+import com.example.demo.model.User;
+import com.example.demo.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class UserService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    // Get all users
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    // Get user by userId
+    public User getUserById(String userId) {
+        Optional<User> userOptional = userRepository.findById(userId);
+        return userOptional.orElse(null); // Return null if user not found
+    }
+}
+package com.example.demo.repository;
+
+import com.example.demo.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UserRepository extends JpaRepository<User, String> {
+}
+package com.example.demo.model;
+
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Table;
 import java.util.List;
 
 @Entity
+@Table(name = "users", schema = "x")
 public class User {
-
     @Id
     private String userId;
-
-    @ElementCollection
     private List<String> groupList;
 
     // Getters and Setters
@@ -74,117 +92,3 @@ public class User {
         this.groupList = groupList;
     }
 }
-package com.example.jwt.repository;
-
-import com.example.jwt.model.User;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-@Repository
-public interface UserRepository extends JpaRepository<User, String> {
-    User findByUserId(String userId);
-}
-package com.example.jwt.util;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-
-import java.util.List;
-
-public class JwtUtil {
-
-    private String secretKey = "yourSecretKey"; // Use environment variables for secret key
-
-    // Method to decode the JWT token and extract claims
-    public static Claims extractClaims(String token, String secretKey) {
-        return Jwts.parser()
-                .setSigningKey(secretKey)
-                .parseClaimsJws(token)
-                .getBody();
-    }
-
-    // Extract userId from JWT token
-    public static String extractUserId(String token, String secretKey) {
-        return extractClaims(token, secretKey).getSubject();
-    }
-
-    // Extract groups from JWT token
-    public static List<String> extractGroups(String token, String secretKey) {
-        Claims claims = extractClaims(token, secretKey);
-        return (List<String>) claims.get("groups");
-    }
-}
-package com.example.jwt.service;
-
-import com.example.jwt.model.User;
-import com.example.jwt.repository.UserRepository;
-import com.example.jwt.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-
-@Service
-public class UserService {
-
-    @Autowired
-    private UserRepository userRepository;
-
-    private final String secretKey = "yourSecretKey"; // Use the same secret key as in JwtUtil
-
-    // Method to check if the user exists or create a new user
-    public User processUser(String token) {
-        String userId = JwtUtil.extractUserId(token, secretKey);
-        List<String> groups = JwtUtil.extractGroups(token, secretKey);
-
-        // Check if user already exists in the database
-        User user = userRepository.findByUserId(userId);
-
-        if (user == null) {
-            // If the user doesn't exist, create a new user
-            user = new User();
-            user.setUserId(userId);
-            user.setGroupList(groups);
-            userRepository.save(user);  // Save the new user
-        } else {
-            // If the user exists, update the group list
-            user.setGroupList(groups);
-            userRepository.save(user);  // Update the user
-        }
-
-        return user;
-    }
-}
-package com.example.jwt.controller;
-
-import com.example.jwt.model.User;
-import com.example.jwt.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
-@RestController
-@RequestMapping("/api/user")
-public class UserController {
-
-    @Autowired
-    private UserService userService;
-
-    @PostMapping("/process-token")
-    public User processToken(@RequestHeader("Authorization") String token) {
-        // Remove "Bearer " prefix from the token
-        String jwtToken = token.substring(7);
-        return userService.processUser(jwtToken);
-    }
-}
--- Create table with user_id and group_list
-CREATE TABLE users (
-    user_id VARCHAR(255) PRIMARY KEY,
-    group_list TEXT[]
-);
-
--- Insert dummy users
-INSERT INTO users (user_id, group_list) 
-VALUES 
-    ('user1', '{"admin", "moderator"}'),
-    ('user2', '{"user", "viewer"}'),
-    ('user3', '{"admin", "editor"}');
