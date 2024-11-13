@@ -1,15 +1,19 @@
+package com.example.usermanagement.entity;
+
 import javax.persistence.*;
 import java.util.Arrays;
 
 @Entity
+@Table(name = "users", schema = "your_schema_name") // Adjust schema name as needed
 public class User {
+
     @Id
+    @Column(name = "user_id")
     private String userId;
 
     @Column(name = "group_list", columnDefinition = "text[]")
     private String[] groupList;
 
-    // Constructors, Getters, and Setters
     public User() {}
 
     public User(String userId, String[] groupList) {
@@ -41,42 +45,71 @@ public class User {
                 '}';
     }
 }
-import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.Optional;
+package com.example.usermanagement.repository;
 
+import com.example.usermanagement.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
 public interface UserRepository extends JpaRepository<User, String> {
-    Optional<User> findByUserId(String userId);
 }
+package com.example.usermanagement.service;
+
+import com.example.usermanagement.entity.User;
+import com.example.usermanagement.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.util.Optional;
 
 @Service
 public class UserService {
+
     @Autowired
     private UserRepository userRepository;
 
-    public User getUserOrCreate(String userId, String[] groupList) {
-        Optional<User> user = userRepository.findByUserId(userId);
-        return user.orElseGet(() -> userRepository.save(new User(userId, groupList)));
+    public User getUser(String userId) {
+        return userRepository.findById(userId).orElse(null);
+    }
+
+    public User addUser(User user) {
+        return userRepository.save(user);
+    }
+
+    public User checkAndAddUser(String userId, String[] groupList) {
+        Optional<User> existingUser = userRepository.findById(userId);
+        if (existingUser.isPresent()) {
+            return existingUser.get();
+        } else {
+            User newUser = new User(userId, groupList);
+            return userRepository.save(newUser);
+        }
     }
 }
+package com.example.usermanagement.controller;
+
+import com.example.usermanagement.entity.User;
+import com.example.usermanagement.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+
     @Autowired
     private UserService userService;
 
+    // Get user by ID
     @GetMapping("/{userId}")
-    public User getUserOrCreate(@PathVariable String userId, @RequestParam String groupList) {
-        String[] groupArray = groupList.split(",");
-        return userService.getUserOrCreate(userId, groupArray);
+    public User getUser(@PathVariable String userId) {
+        return userService.getUser(userId);
+    }
+
+    // Add new user if not exists
+    @PostMapping
+    public User checkAndAddUser(@RequestParam String userId, @RequestParam String[] groupList) {
+        return userService.checkAndAddUser(userId, groupList);
     }
 }
-<dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
