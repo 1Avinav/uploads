@@ -1,84 +1,12 @@
-package com.example.myapp.model;
+CREATE SCHEMA IF NOT EXISTS x;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+CREATE TABLE IF NOT EXISTS x.users (
+    user_id SERIAL PRIMARY KEY,
+    role VARCHAR(50) NOT NULL
+);
 
-@Entity
-@Table(name = "user", schema = "x")  // schema "x" and table "user"
-public class User {
-
-    @Id
-    private Long userId;
-    private String role;
-
-    // Default constructor
-    public User() {}
-
-    // Getters and Setters
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-}
-package com.example.myapp.repository;
-
-import com.example.myapp.model.User;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-public interface UserRepository extends JpaRepository<User, Long> {
-    // You can add custom queries here if needed, but basic CRUD operations are provided automatically
-}
-package com.example.myapp.service;
-
-import com.example.myapp.model.User;
-import com.example.myapp.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-
-@Service
-public class UserService {
-
-    @Autowired
-    private UserRepository userRepository;
-
-    // Method to get all users
-    public List<User> getAllUsers() {
-        return userRepository.findAll();  // This will return all rows from the 'user' table
-    }
-}
-package com.example.myapp.controller;
-
-import com.example.myapp.model.User;
-import com.example.myapp.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
-
-@RestController
-public class UserController {
-
-    @Autowired
-    private UserService userService;
-
-    // GET endpoint to retrieve all users
-    @GetMapping("/users")
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
-    }
-}
+INSERT INTO x.users (user_id, role) VALUES
+    (1, 'ADMIN'),
+    (2, 'USER'),
+    (3, 'MODERATOR')
+ON CONFLICT DO NOTHING;  -- Avoid duplicate entries if re-running
