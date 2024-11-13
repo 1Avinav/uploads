@@ -39,3 +39,35 @@ public class DatabaseConnectionController {
         return isConnected ? "Database connection successful!" : "Failed to connect to the database!";
     }
 }
+<dependencies>
+    <!-- Spring Boot Starter for Core Application -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+
+    <!-- Spring Boot Starter JDBC for Database Connectivity -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+
+    <!-- PostgreSQL Driver for PostgreSQL Database -->
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>42.6.0</version>
+    </dependency>
+
+    <!-- Optional: Spring Boot Starter Data JPA for Repository Support -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+
+    <!-- Optional: Spring Boot Starter Web for REST Controller -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+</dependencies>
