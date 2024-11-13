@@ -1,168 +1,82 @@
-package com.example.myapp.service;
+import javax.persistence.*;
+import java.util.Arrays;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Service;
-
-@Service
-public class DatabaseConnectionTestService {
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    public boolean testConnection() {
-        try {
-            Integer result = jdbcTemplate.queryForObject("SELECT 1", Integer.class);
-            return result != null && result == 1;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-}
-package com.example.myapp.controller;
-
-import com.example.myapp.service.DatabaseConnectionTestService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-@RestController
-public class DatabaseConnectionController {
-
-    @Autowired
-    private DatabaseConnectionTestService databaseConnectionTestService;
-
-    @GetMapping("/test-connection")
-    public String testDatabaseConnection() {
-        boolean isConnected = databaseConnectionTestService.testConnection();
-        return isConnected ? "Database connection successful!" : "Failed to connect to the database!";
-    }
-}
-<dependencies>
-    <!-- Spring Boot Starter for Core Application -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter</artifactId>
-    </dependency>
-
-    <!-- Spring Boot Starter JDBC for Database Connectivity -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-jdbc</artifactId>
-    </dependency>
-
-    <!-- PostgreSQL Driver for PostgreSQL Database -->
-    <dependency>
-        <groupId>org.postgresql</groupId>
-        <artifactId>postgresql</artifactId>
-        <version>42.6.0</version>
-    </dependency>
-
-    <!-- Optional: Spring Boot Starter Data JPA for Repository Support -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-
-    <!-- Optional: Spring Boot Starter Web for REST Controller -->
-
-
-    
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-</dependencies>
-
-package com.example.myapp.model;
-
-import java.util.List;
-
+@Entity
 public class User {
+    @Id
+    private String userId;
 
-    private Long userId;
-    private List<String> groupList;
+    @Column(name = "group_list", columnDefinition = "text[]")
+    private String[] groupList;
 
-    // Constructors, getters, and setters
+    // Constructors, Getters, and Setters
     public User() {}
 
-    public User(Long userId, List<String> groupList) {
+    public User(String userId, String[] groupList) {
         this.userId = userId;
         this.groupList = groupList;
     }
 
-    public Long getUserId() {
+    public String getUserId() {
         return userId;
     }
 
-    public void setUserId(Long userId) {
+    public void setUserId(String userId) {
         this.userId = userId;
     }
 
-    public List<String> getGroupList() {
+    public String[] getGroupList() {
         return groupList;
     }
 
-    public void setGroupList(List<String> groupList) {
+    public void setGroupList(String[] groupList) {
         this.groupList = groupList;
     }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "userId='" + userId + '\'' +
+                ", groupList=" + Arrays.toString(groupList) +
+                '}';
+    }
 }
-package com.example.myapp.service;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
 
-import com.example.myapp.model.User;
+public interface UserRepository extends JpaRepository<User, String> {
+    Optional<User> findByUserId(String userId);
+}
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UserService {
-
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private UserRepository userRepository;
 
-    public List<User> getAllUsers() {
-        String sql = "SELECT user_id, group_list FROM x.user"; // Schema 'x' and table 'user'
-        
-        return jdbcTemplate.query(sql, new RowMapper<User>() {
-            @Override
-            public User mapRow(ResultSet rs, int rowNum) throws SQLException {
-                Long userId = rs.getLong("user_id");
-                String groupListStr = rs.getString("group_list");
-                
-                // Convert group_list from a comma-separated string to a List<String>
-                List<String> groupList = Arrays.asList(groupListStr.split(","));
-                
-                return new User(userId, groupList);
-            }
-        });
+    public User getUserOrCreate(String userId, String[] groupList) {
+        Optional<User> user = userRepository.findByUserId(userId);
+        return user.orElseGet(() -> userRepository.save(new User(userId, groupList)));
     }
 }
-package com.example.myapp.controller;
-
-import com.example.myapp.model.User;
-import com.example.myapp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/api/users")
 public class UserController {
-
     @Autowired
     private UserService userService;
 
-    @GetMapping("/users")
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    @GetMapping("/{userId}")
+    public User getUserOrCreate(@PathVariable String userId, @RequestParam String groupList) {
+        String[] groupArray = groupList.split(",");
+        return userService.getUserOrCreate(userId, groupArray);
     }
 }
-
+<dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
