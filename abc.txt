@@ -1,46 +1,84 @@
+package com.example.myapp.model;
+
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+@Entity
+@Table(name = "user", schema = "x")  // schema "x" and table "user"
+public class User {
+
+    @Id
+    private Long userId;
+    private String role;
+
+    // Default constructor
+    public User() {}
+
+    // Getters and Setters
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+}
+package com.example.myapp.repository;
+
+import com.example.myapp.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UserRepository extends JpaRepository<User, Long> {
+    // You can add custom queries here if needed, but basic CRUD operations are provided automatically
+}
+package com.example.myapp.service;
+
+import com.example.myapp.model.User;
+import com.example.myapp.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class UserService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    // Method to get all users
+    public List<User> getAllUsers() {
+        return userRepository.findAll();  // This will return all rows from the 'user' table
+    }
+}
 package com.example.myapp.controller;
 
-import com.example.myapp.service.DatabaseConnectionService;
+import com.example.myapp.model.User;
+import com.example.myapp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
-public class DatabaseConnectionController {
+public class UserController {
 
     @Autowired
-    private DatabaseConnectionService databaseConnectionService;
+    private UserService userService;
 
-    @GetMapping("/test-database-connection")
-    public String testDatabaseConnection() {
-        boolean isConnected = databaseConnectionService.testConnection();
-        if (isConnected) {
-            return "Database connection successful!";
-        } else {
-            return "Failed to connect to the database!";
-        }
-    }
-}
-package com.example.myapp.service;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Service;
-
-@Service
-public class DatabaseConnectionService {
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    public boolean testConnection() {
-        try {
-            // Perform a simple query to check the connection
-            Integer result = jdbcTemplate.queryForObject("SELECT 1", Integer.class);
-            return result != null && result == 1;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+    // GET endpoint to retrieve all users
+    @GetMapping("/users")
+    public List<User> getAllUsers() {
+        return userService.getAllUsers();
     }
 }
