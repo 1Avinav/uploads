@@ -1,51 +1,9 @@
-package com.example.demo.controller;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RestController;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-
-@RestController
-public class JwtDecodeController {
-
-    private final ObjectMapper objectMapper = new ObjectMapper();  // Jackson object mapper to convert JSON
-
-    /**
-     * Decode JWT without signature verification and return decoded claims.
-     *
-     * @param authHeader The Authorization header containing the JWT token.
-     * @return The decoded JWT claims in JSON format.
-     */
-    @GetMapping("/decode-jwt")
-    public Map<String, Object> decodeJwt(@RequestHeader("Authorization") String authHeader) {
-        Map<String, Object> response = new HashMap<>();
-        try {
-            // Extract the JWT token from the Bearer token format
-            String token = authHeader.replace("Bearer ", "");
-
-            // Split the token into three parts: Header, Payload, and Signature
-            String[] parts = token.split("\\.");
-            if (parts.length < 2) {
-                response.put("error", "Invalid JWT token format.");
-                return response;
-            }
-
-            // Decode the payload (second part of the JWT)
-            String payloadJson = new String(Base64.getUrlDecoder().decode(parts[1]));
-
-            // Convert the decoded JSON payload into a Map of claims
-            Map<String, Object> claims = objectMapper.readValue(payloadJson, Map.class);
-            response.put("decodedClaims", claims);
-
-        } catch (JsonProcessingException e) {
-            response.put("error", "Error parsing JWT payload.");
-        } catch (Exception e) {
-            response.put("error", "An error occurred while decoding JWT.");
-        }
-        return response;
-    }
-}
+fetch('http://localhost:8080/decode-jwt', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer <your_jwt_token>'
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Error:', error));
