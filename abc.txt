@@ -1,8 +1,20 @@
-
-project_id	name	description	creator	created_datetime	api_version	status	document_type	project_code	data_sensitivity_level	document_source
-1	Project Alpha	Initial phase of the Alpha project focusing on core functionalities.	Alice Johnson	2024-11-14 12:00:00	1.0	Active	PDF	ALPHA2024	High	https://example.com/documents/alpha
-2	Project Beta	Exploration of new AI-driven modules for user experience improvement.	Bob Smith	2024-11-14 12:01:00	2.1	Inactive	DOCX	BETA2024	Medium	https://example.com/documents/beta
-3	Project Gamma	Development of backend services for data processing.	Carol White	2024-11-14 12:02:00	1.5	Active	PDF	GAMMA2024	Low	https://example.com/documents/gamma
-4	Project Delta	Testing phase for Delta project with emphasis on security measures.	David Green	2024-11-14 12:03:00	3.0	Completed	HTML	DELTA2024	High	https://example.com/documents/delta
-5	Project Epsilon	Finalizing Epsilon project with performance optimizations.	Eve Black	2024-11-14 12:04:00	2.2	In Progress	PDF	EPSILON2024	Medium	https://example.com/documents/epsilon
-Note: The created_datetime column would automatically capture the current timestamp if it is set to DEFAULT CURRENT_TIMESTAMP. Adjust the table structure if you need additional auto-generated or computed fields.
+CREATE TABLE projects (
+    project_id SERIAL PRIMARY KEY,              -- Primary Key for project
+    name VARCHAR(255) NOT NULL,                 -- Project name
+    description TEXT,                           -- Description of the project
+    creator VARCHAR(100) NOT NULL,              -- Creator of the project
+    created_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Creation datetime
+    api_version VARCHAR(20),                    -- API version for the project
+    status VARCHAR(50) NOT NULL,                -- Status (e.g., Active, Inactive)
+    document_type VARCHAR(50),                  -- Type of document (e.g., PDF, DOCX)
+    project_code VARCHAR(100),                  -- Unique code for the project
+    data_sensitivity_level VARCHAR(50),         -- Data sensitivity level (e.g., High, Medium, Low)
+    document_source VARCHAR(255)                -- Document source location or URL
+);
+INSERT INTO projects (name, description, creator, api_version, status, document_type, project_code, data_sensitivity_level, document_source)
+VALUES
+    ('Project Alpha', 'Initial phase of the Alpha project focusing on core functionalities.', 'Alice Johnson', '1.0', 'Active', 'PDF', 'ALPHA2024', 'High', 'https://example.com/documents/alpha'),
+    ('Project Beta', 'Exploration of new AI-driven modules for user experience improvement.', 'Bob Smith', '2.1', 'Inactive', 'DOCX', 'BETA2024', 'Medium', 'https://example.com/documents/beta'),
+    ('Project Gamma', 'Development of backend services for data processing.', 'Carol White', '1.5', 'Active', 'PDF', 'GAMMA2024', 'Low', 'https://example.com/documents/gamma'),
+    ('Project Delta', 'Testing phase for Delta project with emphasis on security measures.', 'David Green', '3.0', 'Completed', 'HTML', 'DELTA2024', 'High', 'https://example.com/documents/delta'),
+    ('Project Epsilon', 'Finalizing Epsilon project with performance optimizations.', 'Eve Black', '2.2', 'In Progress', 'PDF', 'EPSILON2024', 'Medium', 'https://example.com/documents/epsilon');
