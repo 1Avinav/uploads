@@ -1,115 +1,242 @@
-package com.example.usermanagement.entity;
+package com.hsbc.managementstudio.entity;
 
 import javax.persistence.*;
-import java.util.Arrays;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users", schema = "your_schema_name") // Adjust schema name as needed
-public class User {
+@Table(name = "projects", schema = "your_schema_name")
+public class Project {
 
     @Id
-    @Column(name = "user_id")
-    private String userId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long projectId;
 
-    @Column(name = "group_list", columnDefinition = "text[]")
-    private String[] groupList;
+    private String name;
+    private String description;
+    private String creator;
 
-    public User() {}
+    @Column(name = "created_datetime", updatable = false, insertable = false)
+    private LocalDateTime createdDatetime;
 
-    public User(String userId, String[] groupList) {
-        this.userId = userId;
-        this.groupList = groupList;
+    @Column(name = "api_version")
+    private String apiVersion;
+
+    private String status;
+    private String documentType;
+    private String projectCode;
+    private String dataSensitivityLevel;
+    private String documentSource;
+
+    public Long getProjectId() {
+        return projectId;
     }
 
-    public String getUserId() {
-        return userId;
+    public void setProjectId(Long projectId) {
+        this.projectId = projectId;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public String getName() {
+        return name;
     }
 
-    public String[] getGroupList() {
-        return groupList;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public void setGroupList(String[] groupList) {
-        this.groupList = groupList;
+    public String getDescription() {
+        return description;
     }
 
-    @Override
-    public String toString() {
-        return "User{" +
-                "userId='" + userId + '\'' +
-                ", groupList=" + Arrays.toString(groupList) +
-                '}';
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getCreator() {
+        return creator;
+    }
+
+    public void setCreator(String creator) {
+        this.creator = creator;
+    }
+
+    public LocalDateTime getCreatedDatetime() {
+        return createdDatetime;
+    }
+
+    public String getApiVersion() {
+        return apiVersion;
+    }
+
+    public void setApiVersion(String apiVersion) {
+        this.apiVersion = apiVersion;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getDocumentType() {
+        return documentType;
+    }
+
+    public void setDocumentType(String documentType) {
+        this.documentType = documentType;
+    }
+
+    public String getProjectCode() {
+        return projectCode;
+    }
+
+    public void setProjectCode(String projectCode) {
+        this.projectCode = projectCode;
+    }
+
+    public String getDataSensitivityLevel() {
+        return dataSensitivityLevel;
+    }
+
+    public void setDataSensitivityLevel(String dataSensitivityLevel) {
+        this.dataSensitivityLevel = dataSensitivityLevel;
+    }
+
+    public String getDocumentSource() {
+        return documentSource;
+    }
+
+    public void setDocumentSource(String documentSource) {
+        this.documentSource = documentSource;
     }
 }
-package com.example.usermanagement.repository;
 
-import com.example.usermanagement.entity.User;
+
+package com.hsbc.managementstudio.repository;
+
+import com.hsbc.managementstudio.entity.Project;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, String> {
+public interface ProjectRepository extends JpaRepository<Project, Long> {
 }
-package com.example.usermanagement.service;
 
-import com.example.usermanagement.entity.User;
-import com.example.usermanagement.repository.UserRepository;
+
+package com.hsbc.managementstudio.service;
+
+import com.hsbc.managementstudio.entity.Project;
+import com.hsbc.managementstudio.repository.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.util.List;
 
 @Service
-public class UserService {
+public class ProjectService {
+
+    private final ProjectRepository projectRepository;
 
     @Autowired
-    private UserRepository userRepository;
-
-    public User getUser(String userId) {
-        return userRepository.findById(userId).orElse(null);
+    public ProjectService(ProjectRepository projectRepository) {
+        this.projectRepository = projectRepository;
     }
 
-    public User addUser(User user) {
-        return userRepository.save(user);
+    public List<Project> getAllProjects() {
+        return projectRepository.findAll();
     }
 
-    public User checkAndAddUser(String userId, String[] groupList) {
-        Optional<User> existingUser = userRepository.findById(userId);
-        if (existingUser.isPresent()) {
-            return existingUser.get();
-        } else {
-            User newUser = new User(userId, groupList);
-            return userRepository.save(newUser);
+    public Project getProjectById(Long id) {
+        return projectRepository.findById(id).orElse(null);
+    }
+
+    public Project createProject(Project project) {
+        return projectRepository.save(project);
+    }
+
+    public Project updateProject(Long id, Project updatedProject) {
+        Project project = projectRepository.findById(id).orElse(null);
+        if (project != null) {
+            project.setName(updatedProject.getName());
+            project.setDescription(updatedProject.getDescription());
+            project.setCreator(updatedProject.getCreator());
+            project.setApiVersion(updatedProject.getApiVersion());
+            project.setStatus(updatedProject.getStatus());
+            project.setDocumentType(updatedProject.getDocumentType());
+            project.setProjectCode(updatedProject.getProjectCode());
+            project.setDataSensitivityLevel(updatedProject.getDataSensitivityLevel());
+            project.setDocumentSource(updatedProject.getDocumentSource());
+            return projectRepository.save(project);
         }
+        return null;
+    }
+
+    public boolean deleteProject(Long id) {
+        if (projectRepository.existsById(id)) {
+            projectRepository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 }
-package com.example.usermanagement.controller;
 
-import com.example.usermanagement.entity.User;
-import com.example.usermanagement.service.UserService;
+package com.hsbc.managementstudio.controller;
+
+import com.hsbc.managementstudio.entity.Project;
+import com.hsbc.managementstudio.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/users")
-public class UserController {
+@RequestMapping("/api/projects")
+public class ProjectController {
+
+    private final ProjectService projectService;
 
     @Autowired
-    private UserService userService;
-
-    // Get user by ID
-    @GetMapping("/{userId}")
-    public User getUser(@PathVariable String userId) {
-        return userService.getUser(userId);
+    public ProjectController(ProjectService projectService) {
+        this.projectService = projectService;
     }
 
-    // Add new user if not exists
+    @GetMapping
+    public List<Project> getAllProjects() {
+        return projectService.getAllProjects();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Project> getProjectById(@PathVariable Long id) {
+        Project project = projectService.getProjectById(id);
+        if (project != null) {
+            return ResponseEntity.ok(project);
+        }
+        return ResponseEntity.notFound().build();
+    }
+
     @PostMapping
-    public User checkAndAddUser(@RequestParam String userId, @RequestParam String[] groupList) {
-        return userService.checkAndAddUser(userId, groupList);
+    public Project createProject(@RequestBody Project project) {
+        return projectService.createProject(project);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Project> updateProject(@PathVariable Long id, @RequestBody Project updatedProject) {
+        Project project = projectService.updateProject(id, updatedProject);
+        if (project != null) {
+            return ResponseEntity.ok(project);
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
+        if (projectService.deleteProject(id)) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 }
+
+
