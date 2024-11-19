@@ -1,76 +1,18 @@
-curl -X POST http://localhost:8080/api/sso-login \
--H "Authorization: Bearer <your-jwt-token>" \
--H "Content-Type: application/json"
+public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
 
+  @GetMapping
+    public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String token) {
+        // Extract the role from the JWT token
+        String userRole = jwtUtils.getRoleFromJwt(token);
 
-curl -X GET http://localhost:8080/api/users \
--H "Authorization: Bearer <admin-jwt-token>" \
--H "Content-Type: application/json"
+        // Only allow Admin role to access this endpoint
+        if ("Admin".equalsIgnoreCase(userRole)) {
+            List<User> users = userService.getAllUsers();
+            return ResponseEntity.ok(users);
+        }
 
-
-curl -X POST http://localhost:8080/api/users \
--H "Authorization: Bearer <admin-jwt-token>" \
--H "Content-Type: application/json" \
--d '{
-  "userId": "12345678",
-  "userName": "New User",
-  "email": "new.user@example.com",
-  "profilePicUrl": "http://example.com/new-pic.jpg",
-  "role": "Model Trainer"
-}'
-
-
-curl -X PUT http://localhost:8080/api/users/12345678 \
--H "Authorization: Bearer <admin-jwt-token>" \
--H "Content-Type: application/json" \
--d '{
-  "userName": "Updated User",
-  "email": "updated.user@example.com",
-  "profilePicUrl": "http://example.com/updated-pic.jpg",
-  "role": "Maker"
-}'
-
-
-curl -X PUT http://localhost:8080/api/users/12345678 \
--H "Authorization: Bearer <user-jwt-token>" \
--H "Content-Type: application/json" \
--d '{
-  "userName": "Updated Name",
-  "profilePicUrl": "http://example.com/updated-pic.jpg"
-}'
-
-
-curl -X DELETE http://localhost:8080/api/users/12345678 \
--H "Authorization: Bearer <admin-jwt-token>" \
--H "Content-Type: application/json"
-
-
-curl -X GET http://localhost:8080/api/projects \
--H "Authorization: Bearer <user-or-admin-jwt-token>" \
--H "Content-Type: application/json"
-
-
-curl -X POST http://localhost:8080/api/projects \
--H "Authorization: Bearer <admin-jwt-token>" \
--H "Content-Type: application/json" \
--d '{
-  "name": "New Project",
-  "description": "Description of New Project",
-  "apiVersion": "v2",
-  "status": "Active",
-  "creator": "Admin"
-}'
-
-
-curl -X PUT http://localhost:8080/api/projects/1 \
--H "Authorization: Bearer <admin-jwt-token>" \
--H "Content-Type: application/json" \
--d '{
-  "description": "Updated Description",
-  "status": "Inactive"
-}'
-
-curl -X DELETE http://localhost:8080/api/projects/1 \
--H "Authorization: Bearer <admin-jwt-token>" \
--H "Content-Type: application/json"
-
+        // If not an Admin, return unauthorized access
+        return ResponseEntity.status(403).body("Access Denied: Admins only.");
+    }
