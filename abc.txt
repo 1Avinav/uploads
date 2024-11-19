@@ -1,279 +1,142 @@
-package com.hsbc.managementStudio.model;
+package com.hsbc.managementstudio.service;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
-
-@Entity
-@Table(name = "projects", schema = "test")
-public class Project {
-
-    @Id
-    private String projectId; // Primary key, projectId is a String
-
-    private String projectName;
-    private String description;
-    private String creator;
-    private String createdDateTime;
-    private String apiVersion;
-    private String status;
-    private String documentType;
-    private String projectCode;
-    private String dataSensitivityLevel;
-    private String documentSource;
-
-    // Default constructor
-    public Project() {}
-
-    // Parameterized constructor
-    public Project(String projectId, String projectName, String description, String creator, String createdDateTime, 
-                   String apiVersion, String status, String documentType, String projectCode, 
-                   String dataSensitivityLevel, String documentSource) {
-        this.projectId = projectId;
-        this.projectName = projectName;
-        this.description = description;
-        this.creator = creator;
-        this.createdDateTime = createdDateTime;
-        this.apiVersion = apiVersion;
-        this.status = status;
-        this.documentType = documentType;
-        this.projectCode = projectCode;
-        this.dataSensitivityLevel = dataSensitivityLevel;
-        this.documentSource = documentSource;
-    }
-
-    // Getters and Setters for all fields
-    public String getProjectId() {
-        return projectId;
-    }
-
-    public void setProjectId(String projectId) {
-        this.projectId = projectId;
-    }
-
-    public String getProjectName() {
-        return projectName;
-    }
-
-    public void setProjectName(String projectName) {
-        this.projectName = projectName;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getCreator() {
-        return creator;
-    }
-
-    public void setCreator(String creator) {
-        this.creator = creator;
-    }
-
-    public String getCreatedDateTime() {
-        return createdDateTime;
-    }
-
-    public void setCreatedDateTime(String createdDateTime) {
-        this.createdDateTime = createdDateTime;
-    }
-
-    public String getApiVersion() {
-        return apiVersion;
-    }
-
-    public void setApiVersion(String apiVersion) {
-        this.apiVersion = apiVersion;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getDocumentType() {
-        return documentType;
-    }
-
-    public void setDocumentType(String documentType) {
-        this.documentType = documentType;
-    }
-
-    public String getProjectCode() {
-        return projectCode;
-    }
-
-    public void setProjectCode(String projectCode) {
-        this.projectCode = projectCode;
-    }
-
-    public String getDataSensitivityLevel() {
-        return dataSensitivityLevel;
-    }
-
-    public void setDataSensitivityLevel(String dataSensitivityLevel) {
-        this.dataSensitivityLevel = dataSensitivityLevel;
-    }
-
-    public String getDocumentSource() {
-        return documentSource;
-    }
-
-    public void setDocumentSource(String documentSource) {
-        this.documentSource = documentSource;
-    }
-
-    // Override toString method for easy logging
-    @Override
-    public String toString() {
-        return "Project{" +
-                "projectId='" + projectId + '\'' +
-                ", projectName='" + projectName + '\'' +
-                ", description='" + description + '\'' +
-                ", creator='" + creator + '\'' +
-                ", createdDateTime='" + createdDateTime + '\'' +
-                ", apiVersion='" + apiVersion + '\'' +
-                ", status='" + status + '\'' +
-                ", documentType='" + documentType + '\'' +
-                ", projectCode='" + projectCode + '\'' +
-                ", dataSensitivityLevel='" + dataSensitivityLevel + '\'' +
-                ", documentSource='" + documentSource + '\'' +
-                '}';
-    }
-
-    // Override equals() and hashCode() for correct comparison in collections
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-
-        Project project = (Project) obj;
-
-        return projectId != null ? projectId.equals(project.projectId) : project.projectId == null;
-    }
-
-    @Override
-    public int hashCode() {
-        return projectId != null ? projectId.hashCode() : 0;
-    }
-}
-
-
-package com.hsbc.managementStudio.repository;
-
-import com.hsbc.managementStudio.model.Project;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-@Repository
-public interface ProjectRepository extends JpaRepository<Project, String> {
-    // You can define custom queries here if needed
-}
-
-
-package com.hsbc.managementStudio.service;
-
-import com.hsbc.managementStudio.model.Project;
-import com.hsbc.managementStudio.repository.ProjectRepository;
+import com.hsbc.managementstudio.model.User;
+import com.hsbc.managementstudio.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.Optional;
 
 @Service
-public class ProjectService {
+public class UserService {
 
     @Autowired
-    private ProjectRepository projectRepository;
+    private UserRepository userRepository;
 
-    // Create a new project
-    public Project createProject(Project project) {
-        return projectRepository.save(project);
+    public User createUser(User user) {
+        return userRepository.save(user);
     }
 
-    // Update an existing project
-    public Project updateProject(Project project) {
-        return projectRepository.save(project);
+    public Optional<User> getUserById(String userId) {
+        return userRepository.findById(userId);
     }
 
-    // Delete a project by ID
-    public void deleteProject(String projectId) {
-        projectRepository.deleteById(projectId);
+    public Iterable<User> getAllUsers() {
+        return userRepository.findAll();
     }
 
-    // Get all projects
-    public List<Project> getAllProjects() {
-        return projectRepository.findAll();
+    public User updateUser(String userId, User updatedUser) {
+        Optional<User> existingUser = userRepository.findById(userId);
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
+            user.setUserName(updatedUser.getUserName());
+            user.setEmail(updatedUser.getEmail());
+            user.setProfilePicUrl(updatedUser.getProfilePicUrl());
+            user.setRole(updatedUser.getRole());
+            return userRepository.save(user);
+        }
+        throw new IllegalArgumentException("User not found.");
     }
 
-    // Get project by ID
-    public Project getProjectById(String projectId) {
-        return projectRepository.findById(projectId).orElse(null); // return null if project is not found
+    public void deleteUser(String userId) {
+        userRepository.deleteById(userId);
     }
 }
 
 
+package com.hsbc.managementstudio.controller;
 
-package com.hsbc.managementStudio.controller;
-
-import com.hsbc.managementStudio.model.Project;
-import com.hsbc.managementStudio.service.ProjectService;
+import com.hsbc.managementstudio.model.User;
+import com.hsbc.managementstudio.service.UserService;
+import com.hsbc.managementstudio.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/projects")
-public class ProjectController {
+@RequestMapping("/api/users")
+public class UserController {
 
     @Autowired
-    private ProjectService projectService;
+    private UserService userService;
 
-    // Create a new project
-    @PostMapping("/create")
-    public ResponseEntity<Project> createProject(@RequestBody Project project) {
-        Project newProject = projectService.createProject(project);
-        return ResponseEntity.status(201).body(newProject);
-    }
+    @Autowired
+    private JwtUtil jwtUtil;
 
-    // Update an existing project
-    @PutMapping("/update")
-    public ResponseEntity<Project> updateProject(@RequestBody Project project) {
-        Project updatedProject = projectService.updateProject(project);
-        return ResponseEntity.ok(updatedProject);
-    }
-
-    // Delete a project by ID
-    @DeleteMapping("/delete/{projectId}")
-    public ResponseEntity<String> deleteProject(@PathVariable String projectId) {
-        projectService.deleteProject(projectId);
-        return ResponseEntity.ok("Project deleted successfully");
-    }
-
-    // Get all projects
-    @GetMapping("/all")
-    public ResponseEntity<List<Project>> getAllProjects() {
-        List<Project> projects = projectService.getAllProjects();
-        return ResponseEntity.ok(projects);
-    }
-
-    // Get project by ID
-    @GetMapping("/{projectId}")
-    public ResponseEntity<Project> getProjectById(@PathVariable String projectId) {
-        Project project = projectService.getProjectById(projectId);
-        if (project == null) {
-            return ResponseEntity.status(404).body(null); // Return 404 if project not found
+    @PostMapping
+    public ResponseEntity<?> createUser(@RequestBody User user, @RequestHeader("Authorization") String authHeader) {
+        String role = jwtUtil.getRoleFromJwt(authHeader);
+        if (!"Admin".equals(role)) {
+            return ResponseEntity.status(403).body("Access Denied: Only Admin can create users.");
         }
-        return ResponseEntity.ok(project);
+        User createdUser = userService.createUser(user);
+        return ResponseEntity.ok(createdUser);
+    }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<?> getUserById(@PathVariable String userId, @RequestHeader("Authorization") String authHeader) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        String role = jwtUtil.getRoleFromJwt(authHeader);
+        if (!sub.equals(userId) && !"Admin".equals(role)) {
+            return ResponseEntity.status(403).body("Access Denied: You can only view your own data.");
+        }
+        Optional<User> user = userService.getUserById(userId);
+        return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.status(404).body("User not found."));
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String authHeader) {
+        String role = jwtUtil.getRoleFromJwt(authHeader);
+        if (!"Admin".equals(role)) {
+            return ResponseEntity.status(403).body("Access Denied: Only Admin can view all users.");
+        }
+        return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    @PutMapping("/{userId}")
+    public ResponseEntity<?> updateUser(@PathVariable String userId, @RequestBody User updatedUser,
+                                        @RequestHeader("Authorization") String authHeader) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        String role = jwtUtil.getRoleFromJwt(authHeader);
+        if (!sub.equals(userId) && !"Admin".equals(role)) {
+            return ResponseEntity.status(403).body("Access Denied: You can only update your own data.");
+        }
+        return ResponseEntity.ok(userService.updateUser(userId, updatedUser));
+    }
+
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<?> deleteUser(@PathVariable String userId, @RequestHeader("Authorization") String authHeader) {
+        String role = jwtUtil.getRoleFromJwt(authHeader);
+        if (!"Admin".equals(role)) {
+            return ResponseEntity.status(403).body("Access Denied: Only Admin can delete users.");
+        }
+        userService.deleteUser(userId);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+
+package com.hsbc.managementstudio.util;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import org.springframework.stereotype.Component;
+
+@Component
+public class JwtUtil {
+
+    public String getSubFromJwt(String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+        Claims claims = Jwts.parser().setSigningKey("your-secret-key").parseClaimsJws(token).getBody();
+        return claims.getSubject(); // Extracts 'sub' from JWT
+    }
+
+    public String getRoleFromJwt(String authHeader) {
+        String sub = getSubFromJwt(authHeader);
+        // Assume you fetch the role from the database based on sub
+        // Replace with actual DB call
+        return "Admin"; // Placeholder for demo purposes
     }
 }
