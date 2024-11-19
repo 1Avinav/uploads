@@ -1,7 +1,41 @@
--- Insert example data into the users table
-INSERT INTO users (userId, email, userName, role, profilePicUrl) VALUES
-('45386732', 'avinav.adarsh@hsbc.com', 'Avinav Adarsh', 'Admin', 'https://example.com/profile/avinav-adarsh.jpg'),
-('46273892', 'john.doe@hsbc.com', 'John Doe', 'Model Trainer', 'https://example.com/profile/john-doe.jpg'),
-('48293747', 'jane.smith@hsbc.com', 'Jane Smith', 'Trainer', 'https://example.com/profile/jane-smith.jpg'),
-('49382747', 'mary.jones@hsbc.com', 'Mary Jones', 'Maker', 'https://example.com/profile/mary-jones.jpg'),
-('50384756', 'david.brown@hsbc.com', 'David Brown', 'Checker', 'https://example.com/profile/david-brown.jpg');
+package com.hsbc.managementstudio.util;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import org.springframework.stereotype.Component;
+
+@Component
+public class JwtUtil {
+
+    public Claims decodeJwt(String token) {
+        try {
+            if (token == null || !token.startsWith("Bearer ")) {
+                throw new IllegalArgumentException("Invalid Authorization header.");
+            }
+
+            String jwtToken = token.substring(7); // Remove "Bearer " prefix.
+            return Jwts.parserBuilder()
+                    .build()
+                    .parseClaimsJwt(jwtToken) // No signing key required
+                    .getBody();
+        } catch (MalformedJwtException e) {
+            throw new RuntimeException("Malformed JWT token.");
+        } catch (UnsupportedJwtException e) {
+            throw new RuntimeException("Unsupported JWT token.");
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid JWT token.");
+        }
+    }
+
+    public String getSubFromJwt(String token) {
+        Claims claims = decodeJwt(token);
+        return claims.getSubject();
+    }
+
+    public String getRoleFromJwt(String token) {
+        Claims claims = decodeJwt(token);
+        return claims.get("role", String.class); // Assuming role is part of the JWT claims.
+    }
+}
