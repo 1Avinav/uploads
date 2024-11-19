@@ -1,50 +1,22 @@
-package com.hsbc.managementstudio.config;
+CREATE SCHEMA IF NOT EXISTS test;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
+USE test;
 
-@Configuration
-public class AppConfig {
+-- Drop the existing users table if it exists
+DROP TABLE IF EXISTS users;
 
-    @Value("${app.version}")
-    private String version;
-
-    @Value("${app.supportEmail}")
-    private String supportEmail;
-
-    public String getVersion() {
-        return version;
-    }
-
-    public String getSupportEmail() {
-        return supportEmail;
-    }
-}
-
-package com.hsbc.managementstudio.controller;
-
-import com.hsbc.managementstudio.config.AppConfig;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.HashMap;
-import java.util.Map;
-
-@RestController
-public class AppController {
-
-    @Autowired
-    private AppConfig appConfig;
-
-    @GetMapping("/api/info")
-    public ResponseEntity<Map<String, String>> getAppInfo() {
-        Map<String, String> response = new HashMap<>();
-        response.put("version", appConfig.getVersion());
-        response.put("supportEmail", appConfig.getSupportEmail());
-        return ResponseEntity.ok(response);
-    }
-}
-app.version=1.0.0
-app.supportEmail=support@yourdomain.com
+-- Create the users table with the updated schema
+CREATE TABLE users (
+    userId VARCHAR(50) NOT NULL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    role ENUM('Admin', 'Model Trainer', 'Trainer', 'Maker', 'Checker') NOT NULL,
+    profilePicUrl VARCHAR(500) NOT NULL
+);
+-- Insert example data into the users table
+INSERT INTO users (userId, email, name, role, profilePicUrl) VALUES
+('45386732', 'avinav.adarsh@hsbc.com', 'Avinav Adarsh', 'Admin', 'https://example.com/profile/avinav-adarsh.jpg'),
+('46273892', 'john.doe@hsbc.com', 'John Doe', 'Model Trainer', 'https://example.com/profile/john-doe.jpg'),
+('48293747', 'jane.smith@hsbc.com', 'Jane Smith', 'Trainer', 'https://example.com/profile/jane-smith.jpg'),
+('49382747', 'mary.jones@hsbc.com', 'Mary Jones', 'Maker', 'https://example.com/profile/mary-jones.jpg'),
+('50384756', 'david.brown@hsbc.com', 'David Brown', 'Checker', 'https://example.com/profile/david-brown.jpg');
