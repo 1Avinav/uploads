@@ -1,17 +1,19 @@
+-- Create schema if not exists
 CREATE SCHEMA IF NOT EXISTS test;
 
-USE test;
+-- Set the search path to the schema
+SET search_path TO test;
 
--- Drop the existing users table if it exists
+-- Drop the users table if it exists
 DROP TABLE IF EXISTS users;
 
--- Create the users table with the updated schema
+-- Create the users table
 CREATE TABLE users (
     userId VARCHAR(50) NOT NULL PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     name VARCHAR(100) NOT NULL,
-    role ENUM('Admin', 'Model Trainer', 'Trainer', 'Maker', 'Checker') NOT NULL,
-    profilePicUrl VARCHAR(500) NOT NULL
+    role VARCHAR(50) NOT NULL CHECK (role IN ('Admin', 'Model Trainer', 'Trainer', 'Maker', 'Checker')),
+    profilePicUrl TEXT NOT NULL
 );
 -- Insert example data into the users table
 INSERT INTO users (userId, email, name, role, profilePicUrl) VALUES
