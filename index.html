@@ -1,47 +1,154 @@
+package com.hsbc.managementstudio.repository;
+
+import com.hsbc.managementstudio.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
+
+public interface UserRepository extends JpaRepository<User, String> {
+    Optional<User> findByUserId(String userId);
+}
+
+
 package com.hsbc.managementstudio.service;
 
 import com.hsbc.managementstudio.model.User;
 import com.hsbc.managementstudio.repository.UserRepository;
-import org.apache.tomcat.util.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
+import java.util.Optional;
 
 @Service
-public class JwtUtil {
+public class UserService {
 
     @Autowired
     private UserRepository userRepository;
 
-    // Decode JWT Token
-    public Map<String, Object> decodeJwt(String token) {
-        String[] parts = token.split("\\.");
-        if (parts.length != 3) {
-            throw new IllegalArgumentException("Invalid JWT token structure");
-        }
+    @Autowired
+    private JwtUtil jwtUtil;
 
-        String payload = new String(Base64.decodeBase64(parts[1]), StandardCharsets.UTF_8);
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            return objectMapper.readValue(payload, Map.class);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Error while decoding JWT token");
-        }
+    // Fetch user by 'sub'
+    public Optional<User> getUserBySub(String sub) {
+        return userRepository.findByUserId(sub);
     }
 
-    // Get user 'sub' from the JWT token
-    public String getSubFromJwt(String token) {
-        Map<String, Object> claims = decodeJwt(token);
-        return (String) claims.get("sub");
+    // Create a new user (Only Admin)
+    public User createUser(User user) {
+        return userRepository.save(user);
     }
 
-    // Get user 'role' from the database based on 'sub' claim
-    public String getRoleFromSub(String sub) {
+    // Update user details
+    public User updateUser(String sub, User updatedUser) {
+        User existingUser = userRepository.findByUserId(sub)
+                .orElseThrow(() -> new RuntimeException("User not found for sub: " + sub));
+        
+        existingUser.setUsername(updatedUser.getUsername());
+        existingUser.setEmail(updatedUser.getEmail());
+        existingUser.setProfilePicUrl(updatedUser.getProfilePicUrl());
+
+        return userRepository.save(existingUser);
+    }
+
+    // Delete user (Only Admin)
+    public void deleteUser(String sub) {
         User user = userRepository.findByUserId(sub)
-                .orElseThrow(() -> new IllegalArgumentException("User not found for sub: " + sub));
-        return user.getRole();
+                .orElseThrow(() -> new RuntimeException("User not found for sub: " + sub));
+        userRepository.delete(user);
+    }
+
+    // Check if user is admin
+    public boolean isAdmin(String sub) {
+        String role = jwtUtil.getRoleFromSub(sub);
+        return "Admin".equalsIgnoreCase(role);
     }
 }
+
+
+package com.hsbc.managementstudio.controller;
+
+import com.hsbc.managementstudio.model.User;
+import com.hsbc.managementstudio.service.JwtUtil;
+import com.hsbc.managementstudio.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private UserService userService;
+
+    // Get user by ID (Only the user themselves or Admin can access)
+    @GetMapping("/{userId}")
+    public ResponseEntity<?> getUser(@RequestHeader("Authorization") String authHeader, @PathVariable String userId) {
+        try {
+            String sub = jwtUtil.getSubFromJwt(authHeader);
+
+            if (!sub.equals(userId) && !userService.isAdmin(sub)) {
+                return ResponseEntity.status(403).body("You are not authorized to view this user's details.");
+            }
+
+            Optional<User> userOpt = userService.getUserBySub(userId);
+            return userOpt.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.status(404).body("User not found"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Internal Server Error");
+        }
+    }
+
+    // Create user (Only Admin can create)
+    @PostMapping("/")
+    public ResponseEntity<?> createUser(@RequestHeader("Authorization") String authHeader, @RequestBody User user) {
+        try {
+            String sub = jwtUtil.getSubFromJwt(authHeader);
+            if (!userService.isAdmin(sub)) {
+                return ResponseEntity.status(403).body("Only Admin can create new users.");
+            }
+
+            User createdUser = userService.createUser(user);
+            return ResponseEntity.status(201).body(createdUser);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Internal Server Error");
+        }
+    }
+
+    // Update user (Users can only update themselves, Admin can update anyone)
+    @PutMapping("/{userId}")
+    public ResponseEntity<?> updateUser(@RequestHeader("Authorization") String authHeader, @PathVariable String userId, @RequestBody User updatedUser) {
+        try {
+            String sub = jwtUtil.getSubFromJwt(authHeader);
+            if (!sub.equals(userId) && !userService.isAdmin(sub)) {
+                return ResponseEntity.status(403).body("You are not authorized to update this user's details.");
+            }
+
+            User updated = userService.updateUser(userId, updatedUser);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Internal Server Error");
+        }
+    }
+
+    // Delete user (Only Admin can delete)
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<?> deleteUser(@RequestHeader("Authorization") String authHeader, @PathVariable String userId) {
+        try {
+            String sub = jwtUtil.getSubFromJwt(authHeader);
+            if (!userService.isAdmin(sub)) {
+                return ResponseEntity.status(403).body("Only Admin can delete users.");
+            }
+
+            userService.deleteUser(userId);
+            return ResponseEntity.ok("User deleted successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Internal Server Error");
+        }
+    }
+}
+
+
