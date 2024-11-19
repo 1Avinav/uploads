@@ -18,7 +18,7 @@ public class JwtUtil {
             String jwtToken = token.substring(7); // Remove "Bearer " prefix.
             return Jwts.parserBuilder()
                     .build()
-                    .parseClaimsJwt(jwtToken) // No signing key required
+                    .parseClaimsJwt(jwtToken) // No signing key required.
                     .getBody();
         } catch (MalformedJwtException e) {
             throw new RuntimeException("Malformed JWT token.");
@@ -32,10 +32,5 @@ public class JwtUtil {
     public String getSubFromJwt(String token) {
         Claims claims = decodeJwt(token);
         return claims.getSubject();
-    }
-
-    public String getRoleFromJwt(String token) {
-        Claims claims = decodeJwt(token);
-        return claims.get("role", String.class); // Assuming role is part of the JWT claims.
     }
 }
