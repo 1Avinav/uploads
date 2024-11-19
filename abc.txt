@@ -9,7 +9,7 @@ import javax.persistence.Table;
 public class Project {
 
     @Id
-    private String projectId; // Primary key
+    private String projectId; // Primary key, projectId is a String
 
     private String projectName;
     private String description;
@@ -43,7 +43,6 @@ public class Project {
     }
 
     // Getters and Setters for all fields
-
     public String getProjectId() {
         return projectId;
     }
@@ -164,5 +163,117 @@ public class Project {
     @Override
     public int hashCode() {
         return projectId != null ? projectId.hashCode() : 0;
+    }
+}
+
+
+package com.hsbc.managementStudio.repository;
+
+import com.hsbc.managementStudio.model.Project;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ProjectRepository extends JpaRepository<Project, String> {
+    // You can define custom queries here if needed
+}
+
+
+package com.hsbc.managementStudio.service;
+
+import com.hsbc.managementStudio.model.Project;
+import com.hsbc.managementStudio.repository.ProjectRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ProjectService {
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    // Create a new project
+    public Project createProject(Project project) {
+        return projectRepository.save(project);
+    }
+
+    // Update an existing project
+    public Project updateProject(Project project) {
+        return projectRepository.save(project);
+    }
+
+    // Delete a project by ID
+    public void deleteProject(String projectId) {
+        projectRepository.deleteById(projectId);
+    }
+
+    // Get all projects
+    public List<Project> getAllProjects() {
+        return projectRepository.findAll();
+    }
+
+    // Get project by ID
+    public Project getProjectById(String projectId) {
+        return projectRepository.findById(projectId).orElse(null); // return null if project is not found
+    }
+}
+
+
+
+package com.hsbc.managementStudio.controller;
+
+import com.hsbc.managementStudio.model.Project;
+import com.hsbc.managementStudio.service.ProjectService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/projects")
+public class ProjectController {
+
+    @Autowired
+    private ProjectService projectService;
+
+    // Create a new project
+    @PostMapping("/create")
+    public ResponseEntity<Project> createProject(@RequestBody Project project) {
+        Project newProject = projectService.createProject(project);
+        return ResponseEntity.status(201).body(newProject);
+    }
+
+    // Update an existing project
+    @PutMapping("/update")
+    public ResponseEntity<Project> updateProject(@RequestBody Project project) {
+        Project updatedProject = projectService.updateProject(project);
+        return ResponseEntity.ok(updatedProject);
+    }
+
+    // Delete a project by ID
+    @DeleteMapping("/delete/{projectId}")
+    public ResponseEntity<String> deleteProject(@PathVariable String projectId) {
+        projectService.deleteProject(projectId);
+        return ResponseEntity.ok("Project deleted successfully");
+    }
+
+    // Get all projects
+    @GetMapping("/all")
+    public ResponseEntity<List<Project>> getAllProjects() {
+        List<Project> projects = projectService.getAllProjects();
+        return ResponseEntity.ok(projects);
+    }
+
+    // Get project by ID
+    @GetMapping("/{projectId}")
+    public ResponseEntity<Project> getProjectById(@PathVariable String projectId) {
+        Project project = projectService.getProjectById(projectId);
+        if (project == null) {
+            return ResponseEntity.status(404).body(null); // Return 404 if project not found
+        }
+        return ResponseEntity.ok(project);
     }
 }
