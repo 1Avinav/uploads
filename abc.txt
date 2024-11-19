@@ -1,20 +1,168 @@
-CREATE TABLE projects (
-    project_id SERIAL PRIMARY KEY,              -- Primary Key for project
-    name VARCHAR(255) NOT NULL,                 -- Project name
-    description TEXT,                           -- Description of the project
-    creator VARCHAR(100) NOT NULL,              -- Creator of the project
-    created_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Creation datetime
-    api_version VARCHAR(20),                    -- API version for the project
-    status VARCHAR(50) NOT NULL,                -- Status (e.g., Active, Inactive)
-    document_type VARCHAR(50),                  -- Type of document (e.g., PDF, DOCX)
-    project_code VARCHAR(100),                  -- Unique code for the project
-    data_sensitivity_level VARCHAR(50),         -- Data sensitivity level (e.g., High, Medium, Low)
-    document_source VARCHAR(255)                -- Document source location or URL
-);
-INSERT INTO projects (name, description, creator, api_version, status, document_type, project_code, data_sensitivity_level, document_source)
-VALUES
-    ('Project Alpha', 'Initial phase of the Alpha project focusing on core functionalities.', 'Alice Johnson', '1.0', 'Active', 'PDF', 'ALPHA2024', 'High', 'https://example.com/documents/alpha'),
-    ('Project Beta', 'Exploration of new AI-driven modules for user experience improvement.', 'Bob Smith', '2.1', 'Inactive', 'DOCX', 'BETA2024', 'Medium', 'https://example.com/documents/beta'),
-    ('Project Gamma', 'Development of backend services for data processing.', 'Carol White', '1.5', 'Active', 'PDF', 'GAMMA2024', 'Low', 'https://example.com/documents/gamma'),
-    ('Project Delta', 'Testing phase for Delta project with emphasis on security measures.', 'David Green', '3.0', 'Completed', 'HTML', 'DELTA2024', 'High', 'https://example.com/documents/delta'),
-    ('Project Epsilon', 'Finalizing Epsilon project with performance optimizations.', 'Eve Black', '2.2', 'In Progress', 'PDF', 'EPSILON2024', 'Medium', 'https://example.com/documents/epsilon');
+package com.hsbc.managementStudio.model;
+
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+@Entity
+@Table(name = "projects", schema = "test")
+public class Project {
+
+    @Id
+    private String projectId; // Primary key
+
+    private String projectName;
+    private String description;
+    private String creator;
+    private String createdDateTime;
+    private String apiVersion;
+    private String status;
+    private String documentType;
+    private String projectCode;
+    private String dataSensitivityLevel;
+    private String documentSource;
+
+    // Default constructor
+    public Project() {}
+
+    // Parameterized constructor
+    public Project(String projectId, String projectName, String description, String creator, String createdDateTime, 
+                   String apiVersion, String status, String documentType, String projectCode, 
+                   String dataSensitivityLevel, String documentSource) {
+        this.projectId = projectId;
+        this.projectName = projectName;
+        this.description = description;
+        this.creator = creator;
+        this.createdDateTime = createdDateTime;
+        this.apiVersion = apiVersion;
+        this.status = status;
+        this.documentType = documentType;
+        this.projectCode = projectCode;
+        this.dataSensitivityLevel = dataSensitivityLevel;
+        this.documentSource = documentSource;
+    }
+
+    // Getters and Setters for all fields
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getCreator() {
+        return creator;
+    }
+
+    public void setCreator(String creator) {
+        this.creator = creator;
+    }
+
+    public String getCreatedDateTime() {
+        return createdDateTime;
+    }
+
+    public void setCreatedDateTime(String createdDateTime) {
+        this.createdDateTime = createdDateTime;
+    }
+
+    public String getApiVersion() {
+        return apiVersion;
+    }
+
+    public void setApiVersion(String apiVersion) {
+        this.apiVersion = apiVersion;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getDocumentType() {
+        return documentType;
+    }
+
+    public void setDocumentType(String documentType) {
+        this.documentType = documentType;
+    }
+
+    public String getProjectCode() {
+        return projectCode;
+    }
+
+    public void setProjectCode(String projectCode) {
+        this.projectCode = projectCode;
+    }
+
+    public String getDataSensitivityLevel() {
+        return dataSensitivityLevel;
+    }
+
+    public void setDataSensitivityLevel(String dataSensitivityLevel) {
+        this.dataSensitivityLevel = dataSensitivityLevel;
+    }
+
+    public String getDocumentSource() {
+        return documentSource;
+    }
+
+    public void setDocumentSource(String documentSource) {
+        this.documentSource = documentSource;
+    }
+
+    // Override toString method for easy logging
+    @Override
+    public String toString() {
+        return "Project{" +
+                "projectId='" + projectId + '\'' +
+                ", projectName='" + projectName + '\'' +
+                ", description='" + description + '\'' +
+                ", creator='" + creator + '\'' +
+                ", createdDateTime='" + createdDateTime + '\'' +
+                ", apiVersion='" + apiVersion + '\'' +
+                ", status='" + status + '\'' +
+                ", documentType='" + documentType + '\'' +
+                ", projectCode='" + projectCode + '\'' +
+                ", dataSensitivityLevel='" + dataSensitivityLevel + '\'' +
+                ", documentSource='" + documentSource + '\'' +
+                '}';
+    }
+
+    // Override equals() and hashCode() for correct comparison in collections
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+
+        Project project = (Project) obj;
+
+        return projectId != null ? projectId.equals(project.projectId) : project.projectId == null;
+    }
+
+    @Override
+    public int hashCode() {
+        return projectId != null ? projectId.hashCode() : 0;
+    }
+}
