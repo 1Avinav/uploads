@@ -282,3 +282,28 @@ spring.webflux.cors.allowed-headers=*
 
 # JWT Secret (should be in environment or secrets manager)
 jwt.secret-key=your-secret-key
+
+
+ <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- JWT (JSON Web Token) for securing APIs -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt</artifactId>
+            <version>0.11.5</version>
+        </dependency>
+
+        <!-- Spring Boot Starter Validation (For Bean Validation) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter for CORS (Cross-Origin Resource Sharing) configuration -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
