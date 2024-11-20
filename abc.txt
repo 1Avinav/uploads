@@ -1,142 +1,47 @@
-package com.hsbc.managementstudio.service;
+package com.hsbc.managementStudio.repository;
 
-import com.hsbc.managementstudio.model.User;
-import com.hsbc.managementstudio.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import com.hsbc.managementStudio.entity.Role;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-
-@Service
-public class UserService {
-
-    @Autowired
-    private UserRepository userRepository;
-
-    public User createUser(User user) {
-        return userRepository.save(user);
-    }
-
-    public Optional<User> getUserById(String userId) {
-        return userRepository.findById(userId);
-    }
-
-    public Iterable<User> getAllUsers() {
-        return userRepository.findAll();
-    }
-
-    public User updateUser(String userId, User updatedUser) {
-        Optional<User> existingUser = userRepository.findById(userId);
-        if (existingUser.isPresent()) {
-            User user = existingUser.get();
-            user.setUserName(updatedUser.getUserName());
-            user.setEmail(updatedUser.getEmail());
-            user.setProfilePicUrl(updatedUser.getProfilePicUrl());
-            user.setRole(updatedUser.getRole());
-            return userRepository.save(user);
-        }
-        throw new IllegalArgumentException("User not found.");
-    }
-
-    public void deleteUser(String userId) {
-        userRepository.deleteById(userId);
-    }
+@Repository
+public interface RoleRepository extends JpaRepository<Role, Long> {
+    Role findByRoleName(String roleName);
 }
+package com.hsbc.managementStudio.repository;
 
+import com.hsbc.managementStudio.entity.Project;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-package com.hsbc.managementstudio.controller;
-
-import com.hsbc.managementstudio.model.User;
-import com.hsbc.managementstudio.service.UserService;
-import com.hsbc.managementstudio.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Optional;
-
-@RestController
-@RequestMapping("/api/users")
-public class UserController {
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody User user, @RequestHeader("Authorization") String authHeader) {
-        String role = jwtUtil.getRoleFromJwt(authHeader);
-        if (!"Admin".equals(role)) {
-            return ResponseEntity.status(403).body("Access Denied: Only Admin can create users.");
-        }
-        User createdUser = userService.createUser(user);
-        return ResponseEntity.ok(createdUser);
-    }
-
-    @GetMapping("/{userId}")
-    public ResponseEntity<?> getUserById(@PathVariable String userId, @RequestHeader("Authorization") String authHeader) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        String role = jwtUtil.getRoleFromJwt(authHeader);
-        if (!sub.equals(userId) && !"Admin".equals(role)) {
-            return ResponseEntity.status(403).body("Access Denied: You can only view your own data.");
-        }
-        Optional<User> user = userService.getUserById(userId);
-        return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.status(404).body("User not found."));
-    }
-
-    @GetMapping
-    public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String authHeader) {
-        String role = jwtUtil.getRoleFromJwt(authHeader);
-        if (!"Admin".equals(role)) {
-            return ResponseEntity.status(403).body("Access Denied: Only Admin can view all users.");
-        }
-        return ResponseEntity.ok(userService.getAllUsers());
-    }
-
-    @PutMapping("/{userId}")
-    public ResponseEntity<?> updateUser(@PathVariable String userId, @RequestBody User updatedUser,
-                                        @RequestHeader("Authorization") String authHeader) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        String role = jwtUtil.getRoleFromJwt(authHeader);
-        if (!sub.equals(userId) && !"Admin".equals(role)) {
-            return ResponseEntity.status(403).body("Access Denied: You can only update your own data.");
-        }
-        return ResponseEntity.ok(userService.updateUser(userId, updatedUser));
-    }
-
-    @DeleteMapping("/{userId}")
-    public ResponseEntity<?> deleteUser(@PathVariable String userId, @RequestHeader("Authorization") String authHeader) {
-        String role = jwtUtil.getRoleFromJwt(authHeader);
-        if (!"Admin".equals(role)) {
-            return ResponseEntity.status(403).body("Access Denied: Only Admin can delete users.");
-        }
-        userService.deleteUser(userId);
-        return ResponseEntity.noContent().build();
-    }
+@Repository
+public interface ProjectRepository extends JpaRepository<Project, Long> {
+    boolean existsByProjectCode(String projectCode);
 }
+package com.hsbc.managementStudio.repository;
 
+import com.hsbc.managementStudio.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-package com.hsbc.managementstudio.util;
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+    User findByEmail(String email);
+    User findByUserName(String userName);
+}
+package com.hsbc.managementStudio.repository;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import org.springframework.stereotype.Component;
+import com.hsbc.managementStudio.entity.ProjectUserMapping;
+import com.hsbc.managementStudio.entity.Project;
+import com.hsbc.managementStudio.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-@Component
-public class JwtUtil {
+import java.util.List;
 
-    public String getSubFromJwt(String authHeader) {
-        String token = authHeader.replace("Bearer ", "");
-        Claims claims = Jwts.parser().setSigningKey("your-secret-key").parseClaimsJws(token).getBody();
-        return claims.getSubject(); // Extracts 'sub' from JWT
-    }
-
-    public String getRoleFromJwt(String authHeader) {
-        String sub = getSubFromJwt(authHeader);
-        // Assume you fetch the role from the database based on sub
-        // Replace with actual DB call
-        return "Admin"; // Placeholder for demo purposes
-    }
+@Repository
+public interface ProjectUserMappingRepository extends JpaRepository<ProjectUserMapping, Long> {
+    List<ProjectUserMapping> findByProject(Project project);
+    List<ProjectUserMapping> findByUser(User user);
+    boolean existsByProjectAndUser(Project project, User user);
 }
