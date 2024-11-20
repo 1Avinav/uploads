@@ -1,135 +1,76 @@
-package com.hsbc.managementStudio.service;
+@Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long projectId;
 
-import com.hsbc.managementStudio.entity.Role;
-import com.hsbc.managementStudio.repository.RoleRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+    private String apiVersion;
+    private String description;
+    private LocalDateTime startDate;
+    private LocalDateTime createdDateTime;
+    private String status;
+    private String documentType;
+    private String documentSource;
+    private String projectCode;
+    private String projectName;
 
-@Service
-public class RoleService {
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProjectUserMapping> projectUserMappings;
 
-    @Autowired
-    private RoleRepository roleRepository;
-
-    public Role getRoleByName(String roleName) {
-        return roleRepository.findByRoleName(roleName);
-    }
-
-    public Role saveRole(Role role) {
-        return roleRepository.save(role);
-    }
-}
+     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProjectUserMapping> projectUserMappings;
 
 
-package com.hsbc.managementStudio.service;
+@Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long mappingId;
 
-import com.hsbc.managementStudio.entity.Project;
-import com.hsbc.managementStudio.entity.User;
-import com.hsbc.managementStudio.repository.ProjectRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
-import java.util.List;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-@Service
-public class ProjectService {
-
-    @Autowired
-    private ProjectRepository projectRepository;
-
-    public List<Project> getAllProjects() {
-        return projectRepository.findAll();
-    }
-
-    public Project getProjectById(Long projectId) {
-        return projectRepository.findById(projectId).orElse(null);
-    }
-
-    public boolean existsByProjectCode(String projectCode) {
-        return projectRepository.existsByProjectCode(projectCode);
-    }
-
-    public Project saveProject(Project project) {
-        return projectRepository.save(project);
-    }
-
-    public void deleteProject(Long projectId) {
-        projectRepository.deleteById(projectId);
-    }
-}
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
 
 
-package com.hsbc.managementStudio.service;
+    -- Create Project Table
+CREATE TABLE project (
+    project_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    api_version VARCHAR(255),
+    description TEXT,
+    start_date TIMESTAMP,
+    created_date_time TIMESTAMP,
+    status VARCHAR(255),
+    document_type VARCHAR(255),
+    document_source VARCHAR(255),
+    project_code VARCHAR(255),
+    project_name VARCHAR(255)
+);
 
-import com.hsbc.managementStudio.entity.User;
-import com.hsbc.managementStudio.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+-- Create User Table
+CREATE TABLE user (
+    user_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_name VARCHAR(255),
+    email VARCHAR(255) UNIQUE,
+    profile_url VARCHAR(255)
+);
 
-import java.util.List;
+-- Create Role Table
+CREATE TABLE role (
+    role_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    role_name VARCHAR(255) UNIQUE
+);
 
-@Service
-public class UserService {
-
-    @Autowired
-    private UserRepository userRepository;
-
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
-    }
-
-    public User getUserById(Long userId) {
-        return userRepository.findById(userId).orElse(null);
-    }
-
-    public User getUserByEmail(String email) {
-        return userRepository.findByEmail(email);
-    }
-
-    public User saveUser(User user) {
-        return userRepository.save(user);
-    }
-
-    public void deleteUser(Long userId) {
-        userRepository.deleteById(userId);
-    }
-}
-
-
-package com.hsbc.managementStudio.service;
-
-import com.hsbc.managementStudio.entity.Project;
-import com.hsbc.managementStudio.entity.ProjectUserMapping;
-import com.hsbc.managementStudio.entity.User;
-import com.hsbc.managementStudio.repository.ProjectUserMappingRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-
-@Service
-public class ProjectUserMappingService {
-
-    @Autowired
-    private ProjectUserMappingRepository projectUserMappingRepository;
-
-    public List<ProjectUserMapping> getUsersByProject(Project project) {
-        return projectUserMappingRepository.findByProject(project);
-    }
-
-    public List<ProjectUserMapping> getProjectsByUser(User user) {
-        return projectUserMappingRepository.findByUser(user);
-    }
-
-    public boolean isUserMappedToProject(Project project, User user) {
-        return projectUserMappingRepository.existsByProjectAndUser(project, user);
-    }
-
-    public ProjectUserMapping saveMapping(ProjectUserMapping mapping) {
-        return projectUserMappingRepository.save(mapping);
-    }
-
-    public void deleteMapping(Long mappingId) {
-        projectUserMappingRepository.deleteById(mappingId);
-    }
-}
+-- Create ProjectUserMapping Table
+CREATE TABLE project_user_mapping (
+    mapping_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    project_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    role_id BIGINT NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES project(project_id),
+    FOREIGN KEY (user_id) REFERENCES user(user_id),
+    FOREIGN KEY (role_id) REFERENCES role(role_id)
+);
