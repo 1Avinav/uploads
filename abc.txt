@@ -65,3 +65,13 @@ INSERT INTO project_user_mapping (project_id, user_id, role_name) VALUES
 (1, 2, 'Moderator'),  -- Jane Smith (Moderator) in AI Traffic Monitoring System
 (2, 3, 'Trainer'),  -- Michael Lee (Trainer) in Train Booking Experience
 (3, 4, 'Checker');  -- Emily Clark (Checker) in Ticket Validation Update
+
+CREATE TABLE project_user_mapping (
+    mapping_id BIGSERIAL PRIMARY KEY,
+    project_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    role_name VARCHAR(255) NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES project(project_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES "user"(user_id) ON DELETE CASCADE
+);
+
