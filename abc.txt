@@ -1,47 +1,9 @@
-package com.hsbc.managementStudio.repository;
+public boolean isAdmin(String sub) {
+        Optional<User> user = userRepository.findById(Long.parseLong(sub));
+        return user.map(u -> "Admin".equalsIgnoreCase(u.getRole())).orElse(false);
+    }
 
-import com.hsbc.managementStudio.entity.Role;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-@Repository
-public interface RoleRepository extends JpaRepository<Role, Long> {
-    Role findByRoleName(String roleName);
-}
-package com.hsbc.managementStudio.repository;
-
-import com.hsbc.managementStudio.entity.Project;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-@Repository
-public interface ProjectRepository extends JpaRepository<Project, Long> {
-    boolean existsByProjectCode(String projectCode);
-}
-package com.hsbc.managementStudio.repository;
-
-import com.hsbc.managementStudio.entity.User;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-@Repository
-public interface UserRepository extends JpaRepository<User, Long> {
-    User findByEmail(String email);
-    User findByUserName(String userName);
-}
-package com.hsbc.managementStudio.repository;
-
-import com.hsbc.managementStudio.entity.ProjectUserMapping;
-import com.hsbc.managementStudio.entity.Project;
-import com.hsbc.managementStudio.entity.User;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
-
-@Repository
-public interface ProjectUserMappingRepository extends JpaRepository<ProjectUserMapping, Long> {
-    List<ProjectUserMapping> findByProject(Project project);
-    List<ProjectUserMapping> findByUser(User user);
-    boolean existsByProjectAndUser(Project project, User user);
-}
+    // Method to fetch user by ID
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId).orElse(null);
+    }
