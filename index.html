@@ -1,154 +1,269 @@
-package com.hsbc.managementstudio.repository;
+package com.hsbc.managementStudio.controller;
 
-import com.hsbc.managementstudio.model.User;
-import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.Optional;
-
-public interface UserRepository extends JpaRepository<User, String> {
-    Optional<User> findByUserId(String userId);
-}
-
-
-package com.hsbc.managementstudio.service;
-
-import com.hsbc.managementstudio.model.User;
-import com.hsbc.managementstudio.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.Optional;
-
-@Service
-public class UserService {
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    // Fetch user by 'sub'
-    public Optional<User> getUserBySub(String sub) {
-        return userRepository.findByUserId(sub);
-    }
-
-    // Create a new user (Only Admin)
-    public User createUser(User user) {
-        return userRepository.save(user);
-    }
-
-    // Update user details
-    public User updateUser(String sub, User updatedUser) {
-        User existingUser = userRepository.findByUserId(sub)
-                .orElseThrow(() -> new RuntimeException("User not found for sub: " + sub));
-        
-        existingUser.setUsername(updatedUser.getUsername());
-        existingUser.setEmail(updatedUser.getEmail());
-        existingUser.setProfilePicUrl(updatedUser.getProfilePicUrl());
-
-        return userRepository.save(existingUser);
-    }
-
-    // Delete user (Only Admin)
-    public void deleteUser(String sub) {
-        User user = userRepository.findByUserId(sub)
-                .orElseThrow(() -> new RuntimeException("User not found for sub: " + sub));
-        userRepository.delete(user);
-    }
-
-    // Check if user is admin
-    public boolean isAdmin(String sub) {
-        String role = jwtUtil.getRoleFromSub(sub);
-        return "Admin".equalsIgnoreCase(role);
-    }
-}
-
-
-package com.hsbc.managementstudio.controller;
-
-import com.hsbc.managementstudio.model.User;
-import com.hsbc.managementstudio.service.JwtUtil;
-import com.hsbc.managementstudio.service.UserService;
+import com.hsbc.managementStudio.entity.Role;
+import com.hsbc.managementStudio.service.RoleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
+@RestController
+@RequestMapping("/api/roles")
+public class RoleController {
+
+    @Autowired
+    private RoleService roleService;
+
+    @GetMapping("/{roleName}")
+    public ResponseEntity<Role> getRoleByName(@PathVariable String roleName) {
+        Role role = roleService.getRoleByName(roleName);
+        if (role != null) {
+            return ResponseEntity.ok(role);
+        }
+        return ResponseEntity.status(404).body(null);
+    }
+
+    @PostMapping
+    public ResponseEntity<Role> createRole(@RequestBody Role role) {
+        Role savedRole = roleService.saveRole(role);
+        return ResponseEntity.ok(savedRole);
+    }
+}
+
+
+package com.hsbc.managementStudio.controller;
+
+import com.hsbc.managementStudio.entity.User;
+import com.hsbc.managementStudio.service.UserService;
+import com.hsbc.managementStudio.util.JwtUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
     @Autowired
+    private UserService userService;
+
+    @Autowired
     private JwtUtil jwtUtil;
+
+    @GetMapping
+    public ResponseEntity<List<User>> getAllUsers(@RequestHeader("Authorization") String authHeader) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).body(null);
+        }
+        return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<User> getUserById(@RequestHeader("Authorization") String authHeader, @PathVariable Long userId) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        User user = userService.getUserById(userId);
+        if (user == null || (!user.getUserId().equals(sub) && !userService.isAdmin(sub))) {
+            return ResponseEntity.status(403).body(null);
+        }
+        return ResponseEntity.ok(user);
+    }
+
+    @PostMapping
+    public ResponseEntity<User> createUser(@RequestHeader("Authorization") String authHeader, @RequestBody User user) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).body(null);
+        }
+        return ResponseEntity.ok(userService.saveUser(user));
+    }
+
+    @PutMapping("/{userId}")
+    public ResponseEntity<User> updateUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long userId, @RequestBody User user) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userId.equals(sub) && !userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).body(null);
+        }
+        user.setUserId(userId);
+        return ResponseEntity.ok(userService.saveUser(user));
+    }
+
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Void> deleteUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long userId) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).build();
+        }
+        userService.deleteUser(userId);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+package com.hsbc.managementStudio.controller;
+
+import com.hsbc.managementStudio.entity.Project;
+import com.hsbc.managementStudio.entity.ProjectUserMapping;
+import com.hsbc.managementStudio.entity.User;
+import com.hsbc.managementStudio.service.ProjectService;
+import com.hsbc.managementStudio.service.ProjectUserMappingService;
+import com.hsbc.managementStudio.service.UserService;
+import com.hsbc.managementStudio.util.JwtUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/projects")
+public class ProjectController {
+
+    @Autowired
+    private ProjectService projectService;
 
     @Autowired
     private UserService userService;
 
-    // Get user by ID (Only the user themselves or Admin can access)
-    @GetMapping("/{userId}")
-    public ResponseEntity<?> getUser(@RequestHeader("Authorization") String authHeader, @PathVariable String userId) {
-        try {
-            String sub = jwtUtil.getSubFromJwt(authHeader);
+    @Autowired
+    private ProjectUserMappingService mappingService;
 
-            if (!sub.equals(userId) && !userService.isAdmin(sub)) {
-                return ResponseEntity.status(403).body("You are not authorized to view this user's details.");
-            }
+    @Autowired
+    private JwtUtil jwtUtil;
 
-            Optional<User> userOpt = userService.getUserBySub(userId);
-            return userOpt.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.status(404).body("User not found"));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Internal Server Error");
+    @GetMapping
+    public ResponseEntity<List<Project>> getAllProjects(@RequestHeader("Authorization") String authHeader) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            User user = userService.getUserById(Long.parseLong(sub));
+            List<ProjectUserMapping> mappings = mappingService.getProjectsByUser(user);
+            List<Project> projects = mappings.stream().map(ProjectUserMapping::getProject).toList();
+            return ResponseEntity.ok(projects);
         }
+        return ResponseEntity.ok(projectService.getAllProjects());
     }
 
-    // Create user (Only Admin can create)
-    @PostMapping("/")
-    public ResponseEntity<?> createUser(@RequestHeader("Authorization") String authHeader, @RequestBody User user) {
-        try {
-            String sub = jwtUtil.getSubFromJwt(authHeader);
-            if (!userService.isAdmin(sub)) {
-                return ResponseEntity.status(403).body("Only Admin can create new users.");
-            }
-
-            User createdUser = userService.createUser(user);
-            return ResponseEntity.status(201).body(createdUser);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Internal Server Error");
+    @PostMapping
+    public ResponseEntity<Project> createProject(@RequestHeader("Authorization") String authHeader, @RequestBody Project project) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).body(null);
         }
+        return ResponseEntity.ok(projectService.saveProject(project));
     }
 
-    // Update user (Users can only update themselves, Admin can update anyone)
-    @PutMapping("/{userId}")
-    public ResponseEntity<?> updateUser(@RequestHeader("Authorization") String authHeader, @PathVariable String userId, @RequestBody User updatedUser) {
-        try {
-            String sub = jwtUtil.getSubFromJwt(authHeader);
-            if (!sub.equals(userId) && !userService.isAdmin(sub)) {
-                return ResponseEntity.status(403).body("You are not authorized to update this user's details.");
-            }
-
-            User updated = userService.updateUser(userId, updatedUser);
-            return ResponseEntity.ok(updated);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Internal Server Error");
+    @PutMapping("/{projectId}")
+    public ResponseEntity<Project> updateProject(@RequestHeader("Authorization") String authHeader, @PathVariable Long projectId, @RequestBody Project project) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).body(null);
         }
+        project.setProjectId(projectId);
+        return ResponseEntity.ok(projectService.saveProject(project));
     }
 
-    // Delete user (Only Admin can delete)
-    @DeleteMapping("/{userId}")
-    public ResponseEntity<?> deleteUser(@RequestHeader("Authorization") String authHeader, @PathVariable String userId) {
-        try {
-            String sub = jwtUtil.getSubFromJwt(authHeader);
-            if (!userService.isAdmin(sub)) {
-                return ResponseEntity.status(403).body("Only Admin can delete users.");
-            }
-
-            userService.deleteUser(userId);
-            return ResponseEntity.ok("User deleted successfully.");
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Internal Server Error");
+    @DeleteMapping("/{projectId}")
+    public ResponseEntity<Void> deleteProject(@RequestHeader("Authorization") String authHeader, @PathVariable Long projectId) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).build();
         }
+        projectService.deleteProject(projectId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{projectId}/addUser")
+    public ResponseEntity<Void> addUserToProject(@RequestHeader("Authorization") String authHeader, @PathVariable Long projectId, @RequestParam Long userId, @RequestParam String roleName) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).build();
+        }
+        Project project = projectService.getProjectById(projectId);
+        User user = userService.getUserById(userId);
+        mappingService.saveMapping(new ProjectUserMapping(null, project, user, roleName));
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{projectId}/removeUser")
+    public ResponseEntity<Void> removeUserFromProject(@RequestHeader("Authorization") String authHeader, @PathVariable Long projectId, @RequestParam Long userId) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).build();
+        }
+        Project project = projectService.getProjectById(projectId);
+        User user = userService.getUserById(userId);
+        List<ProjectUserMapping> mappings = mappingService.getUsersByProject(project);
+        mappings.stream().filter(mapping -> mapping.getUser().equals(user)).findFirst()
+                .ifPresent(mapping -> mappingService.deleteMapping(mapping.getMappingId()));
+        return ResponseEntity.noContent().build();
     }
 }
 
 
+package com.hsbc.managementStudio.controller;
+
+import com.hsbc.managementStudio.entity.Project;
+import com.hsbc.managementStudio.entity.ProjectUserMapping;
+import com.hsbc.managementStudio.entity.User;
+import com.hsbc.managementStudio.service.ProjectService;
+import com.hsbc.managementStudio.service.ProjectUserMappingService;
+import com.hsbc.managementStudio.service.UserService;
+import com.hsbc.managementStudio.util.JwtUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api/project-user-mapping")
+public class ProjectUserMappingController {
+
+    @Autowired
+    private ProjectUserMappingService mappingService;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private ProjectService projectService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @GetMapping("/projects/{userId}")
+    public ResponseEntity<List<Project>> getProjectsByUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long userId) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub) && !userId.equals(Long.parseLong(sub))) {
+            return ResponseEntity.status(403).body(null);
+        }
+        User user = userService.getUserById(userId);
+        if (user == null) {
+            return ResponseEntity.status(404).body(null);
+        }
+        List<Project> projects = mappingService.getProjectsByUser(user).stream()
+                .map(ProjectUserMapping::getProject)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(projects);
+    }
+
+    @GetMapping("/users/{projectId}")
+    public ResponseEntity<List<User>> getUsersByProject(@RequestHeader("Authorization") String authHeader, @PathVariable Long projectId) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).body(null);
+        }
+        Project project = projectService.getProjectById(projectId);
+        if (project == null) {
+            return ResponseEntity.status(404).body(null);
+        }
+        List<User> users = mappingService.getUsersByProject(project).stream()
+                .map(ProjectUserMapping::getUser)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
+    }
+}
+
+
+            
