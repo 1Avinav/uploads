@@ -31,57 +31,70 @@ INSERT INTO test.project_user_mapping (project_id, user_id, user_role) VALUES
 ('P001', '45678901', 'Moderator');
 
 
-@Entity
-public class ProjectUserMapping {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long mappingId;
+@RestController
+@RequestMapping("/api/roles")
+public class RoleController {
 
-    @ManyToOne
-    private Project project;
+    @Autowired
+    private RoleService roleService;
 
-    @ManyToOne
-    private User user;
+    @Autowired
+    private UserService userService;
 
-    private String roleName;
+    @Autowired
+    private JwtUtil jwtUtil;
 
-    // Constructor, getters, and setters
-    public ProjectUserMapping(Long mappingId, Project project, User user, String roleName) {
-        this.mappingId = mappingId;
-        this.project = project;
-        this.user = user;
-        this.roleName = roleName;
+    // 1. Get All Roles
+    @GetMapping
+    public ResponseEntity<List<Role>> getAllRoles(@RequestHeader("Authorization") String authHeader) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).body(null);
+        }
+        return ResponseEntity.ok(roleService.getAllRoles());
     }
 
-    public Long getMappingId() {
-        return mappingId;
+    // 2. Create Role
+    @PostMapping
+    public ResponseEntity<Role> createRole(@RequestHeader("Authorization") String authHeader, @RequestBody Role role) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).body(null);
+        }
+        return ResponseEntity.ok(roleService.createRole(role));
     }
 
-    public void setMappingId(Long mappingId) {
-        this.mappingId = mappingId;
+    // 3. Assign Role to User
+    @PostMapping("/{roleId}/assign")
+    public ResponseEntity<Void> assignRoleToUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long roleId, @RequestParam Long userId) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).build();
+        }
+        roleService.assignRoleToUser(userId, roleId);
+        return ResponseEntity.noContent().build();
     }
 
-    public Project getProject() {
-        return project;
+    // 4. Update Role for User
+    @PutMapping("/{roleId}/update")
+    public ResponseEntity<Void> updateRoleForUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long roleId, @RequestParam Long userId, @RequestParam String newRole) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).build();
+        }
+        roleService.updateRoleForUser(userId, roleId, newRole);
+        return ResponseEntity.noContent().build();
     }
 
-    public void setProject(Project project) {
-        this.project = project;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public String getRoleName() {
-        return roleName;
-    }
-
-    public void setRoleName(String roleName) {
-        this.roleName = roleName;
+    // 5. Remove Role from User
+    @DeleteMapping("/{roleId}/remove")
+    public ResponseEntity<Void> removeRoleFromUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long roleId, @RequestParam Long userId) {
+        String sub = jwtUtil.getSubFromJwt(authHeader);
+        if (!userService.isAdmin(sub)) {
+            return ResponseEntity.status(403).build();
+        }
+        roleService.removeRoleFromUser(userId, roleId);
+        return ResponseEntity.noContent().build();
     }
 }
+
