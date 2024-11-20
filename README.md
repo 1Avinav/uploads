@@ -74,3 +74,13 @@ CREATE TABLE project_user_mapping (
     FOREIGN KEY (user_id) REFERENCES user(user_id),
     FOREIGN KEY (role_id) REFERENCES role(role_id)
 );
+curl -X PUT http://localhost:8080/api/users/12345678 \
+-H "Content-Type: application/json" \
+-d '{
+  "userName": "Updated User Name",
+  "email": "updateduser@example.com",
+  "profileUrl": "http://example.com/profile/updateduser",
+  "role": {
+    "roleId": 1
+  }
+}'
