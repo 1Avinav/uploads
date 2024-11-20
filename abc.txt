@@ -1,9 +1,31 @@
-public boolean isAdmin(String sub) {
-        Optional<User> user = userRepository.findById(Long.parseLong(sub));
-        return user.map(u -> "Admin".equalsIgnoreCase(u.getRole())).orElse(false);
-    }
+-- Inserting sample data into the users table
+INSERT INTO test.users (user_id, user_name, email, profile_pic_url, role) VALUES
+('45386732', 'John Doe', 'john.doe@example.com', 'https://profilepics.com/john.jpg', 'Admin'),
+('12345678', 'Jane Smith', 'jane.smith@example.com', 'https://profilepics.com/jane.jpg', 'Moderator'),
+('23456789', 'Michael Brown', 'michael.brown@example.com', 'https://profilepics.com/michael.jpg', 'Checker'),
+('34567890', 'Emily Clark', 'emily.clark@example.com', 'https://profilepics.com/emily.jpg', 'Moderator Trainer'),
+('45678901', 'David Wilson', 'david.wilson@example.com', 'https://profilepics.com/david.jpg', 'Moderator');
 
-    // Method to fetch user by ID
-    public User getUserById(Long userId) {
-        return userRepository.findById(userId).orElse(null);
-    }
+
+-- Inserting sample data into roles table (if separate)
+INSERT INTO test.roles (role_name) VALUES
+('Admin'),
+('Moderator'),
+('Checker'),
+('Moderator Trainer');
+
+
+-- Inserting sample data into the projects table
+INSERT INTO test.projects (project_id, api_version, created_date_time, creator, data_sensitivity_level, description, document_source, document_type, project_code, project_name, status) VALUES
+('P001', 'v1.0', '2024-11-01 08:00:00', 'John Doe', 'High', 'This is a test project', 'Internal', 'PDF', 'PRJ001', 'Project One', 'Active'),
+('P002', 'v2.0', '2024-11-02 09:00:00', 'Jane Smith', 'Medium', 'This project involves sensitive data', 'External', 'Word', 'PRJ002', 'Project Two', 'Inactive'),
+('P003', 'v1.2', '2024-11-03 10:00:00', 'Michael Brown', 'Low', 'Research and development project', 'Internal', 'Excel', 'PRJ003', 'Project Three', 'Active');
+
+
+-- Inserting sample data into project_user_mapping table
+INSERT INTO test.project_user_mapping (project_id, user_id, user_role) VALUES
+('P001', '45386732', 'Admin'),
+('P001', '12345678', 'Moderator'),
+('P002', '23456789', 'Checker'),
+('P003', '34567890', 'Moderator Trainer'),
+('P001', '45678901', 'Moderator');
