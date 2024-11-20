@@ -84,3 +84,22 @@ curl -X PUT http://localhost:8080/api/users/12345678 \
     "roleId": 1
   }
 }'
+
+fetch('http://localhost:8080/api/users/12345678', {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    userName: 'New Full Name',
+    email: 'newfull@example.com',
+    profileUrl: 'http://newurl.com',
+    role: {
+      roleId: 2, // Assuming roleId 2 exists
+    },
+  }),
+})
+  .then(response => response.json())
+  .then(data => console.log('User updated:', data))
+  .catch(error => console.error('Error:', error));
+
