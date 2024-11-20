@@ -29,3 +29,59 @@ INSERT INTO test.project_user_mapping (project_id, user_id, user_role) VALUES
 ('P002', '23456789', 'Checker'),
 ('P003', '34567890', 'Moderator Trainer'),
 ('P001', '45678901', 'Moderator');
+
+
+@Entity
+public class ProjectUserMapping {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long mappingId;
+
+    @ManyToOne
+    private Project project;
+
+    @ManyToOne
+    private User user;
+
+    private String roleName;
+
+    // Constructor, getters, and setters
+    public ProjectUserMapping(Long mappingId, Project project, User user, String roleName) {
+        this.mappingId = mappingId;
+        this.project = project;
+        this.user = user;
+        this.roleName = roleName;
+    }
+
+    public Long getMappingId() {
+        return mappingId;
+    }
+
+    public void setMappingId(Long mappingId) {
+        this.mappingId = mappingId;
+    }
+
+    public Project getProject() {
+        return project;
+    }
+
+    public void setProject(Project project) {
+        this.project = project;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public String getRoleName() {
+        return roleName;
+    }
+
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
+    }
+}
