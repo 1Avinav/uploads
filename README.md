@@ -128,3 +128,45 @@ createUser();
   .then(data => console.log('User updated:', data))
   .catch(error => console.error('Error:', error));
 
+
+
+
+  const createUser = async () => {
+  const url = 'http://localhost:8080/api/users'; // Replace with your backend URL
+  const token = 'your-jwt-token'; // Replace with actual JWT token
+
+  const newUser = {
+    userName: "JaneDoe",
+    email: "janedoe@example.com",
+    profilePicUrl: "https://example.com/janedoe.jpg",
+    role: { id: 1 } // Assuming role with ID 1 exists
+  };
+
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST', // Use POST method to create a user
+      headers: headers,
+      body: JSON.stringify(newUser) // Send the new user data as JSON
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('User Created:', data); // Log the created user
+    } else {
+      const errorData = await response.json();
+      console.error('Error:', errorData); // Log error details
+    }
+  } catch (error) {
+    console.error('Request failed', error);
+  }
+};
+
+// Call the function to create a user
+createUser();
+
+
