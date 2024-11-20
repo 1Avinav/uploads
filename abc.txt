@@ -75,26 +75,14 @@ CREATE TABLE project_user_mapping (
     FOREIGN KEY (user_id) REFERENCES "user"(user_id) ON DELETE CASCADE
 );
 
-@Service
-public class ProjectUserMappingService {
-
-    @Autowired
-    private ProjectUserMappingRepository mappingRepository;
-
-    @Autowired
-    private ProjectRepository projectRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    public ProjectUserMapping createMapping(Long projectId, Long userId, String roleName) {
-        Project project = projectRepository.findById(projectId).orElseThrow(() -> new RuntimeException("Project not found"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
-        
-        ProjectUserMapping mapping = new ProjectUserMapping(project, user, roleName);
-        return mappingRepository.save(mapping);
-    }
-}
+try {
+            // Calling the service layer to create a mapping between project and user
+            ProjectUserMapping mapping = projectUserMappingService.createMapping(projectId, userId, roleName);
+            return ResponseEntity.ok("User successfully added to project with mapping ID: " + mapping.getMappingId());
+        } catch (Exception e) {
+            // Handling any errors and returning a meaningful message
+            return ResponseEntity.status(400).body("Error: " + e.getMessage());
+        }
 public ProjectUserMapping createMapping(Long projectId, Long userId, String roleName) {
     Project project = projectRepository.findById(projectId).orElseThrow(() -> new RuntimeException("Project not found"));
     User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
