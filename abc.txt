@@ -91,3 +91,5 @@ public ProjectUserMapping createMapping(Long projectId, Long userId, String role
     ProjectUserMapping mapping = new ProjectUserMapping(project, user, roleName);
     return mappingRepository.save(mapping);
 }
+ALTER TABLE users ALTER COLUMN role_id DROP NOT NULL;
+
