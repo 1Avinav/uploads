@@ -1,269 +1,183 @@
-package com.hsbc.managementStudio.controller;
+package com.hsbc.managementStudio.model;
 
-import com.hsbc.managementStudio.entity.Role;
-import com.hsbc.managementStudio.service.RoleService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
-@RestController
-@RequestMapping("/api/roles")
-public class RoleController {
+class UserTest {
 
-    @Autowired
-    private RoleService roleService;
+    @Test
+    void testUserModel() {
+        Role role = new Role(1L, "Admin");
+        User user = new User("1", "testUser", "testPicUrl", "testEmail", role);
 
-    @GetMapping("/{roleName}")
-    public ResponseEntity<Role> getRoleByName(@PathVariable String roleName) {
-        Role role = roleService.getRoleByName(roleName);
-        if (role != null) {
-            return ResponseEntity.ok(role);
-        }
-        return ResponseEntity.status(404).body(null);
-    }
-
-    @PostMapping
-    public ResponseEntity<Role> createRole(@RequestBody Role role) {
-        Role savedRole = roleService.saveRole(role);
-        return ResponseEntity.ok(savedRole);
+        assertEquals("1", user.getUserId());
+        assertEquals("testUser", user.getUsername());
+        assertEquals("testPicUrl", user.getProfilePicUrl());
+        assertEquals("testEmail", user.getEmail());
+        assertEquals(role, user.getRole());
     }
 }
 
+package com.hsbc.managementStudio.model;
 
-package com.hsbc.managementStudio.controller;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
-import com.hsbc.managementStudio.entity.User;
-import com.hsbc.managementStudio.service.UserService;
-import com.hsbc.managementStudio.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+class RoleTest {
 
-import java.util.List;
+    @Test
+    void testRoleModel() {
+        Role role = new Role(1L, "Admin");
 
-@RestController
-@RequestMapping("/api/users")
-public class UserController {
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @GetMapping
-    public ResponseEntity<List<User>> getAllUsers(@RequestHeader("Authorization") String authHeader) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        if (!userService.isAdmin(sub)) {
-            return ResponseEntity.status(403).body(null);
-        }
-        return ResponseEntity.ok(userService.getAllUsers());
-    }
-
-    @GetMapping("/{userId}")
-    public ResponseEntity<User> getUserById(@RequestHeader("Authorization") String authHeader, @PathVariable Long userId) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        User user = userService.getUserById(userId);
-        if (user == null || (!user.getUserId().equals(sub) && !userService.isAdmin(sub))) {
-            return ResponseEntity.status(403).body(null);
-        }
-        return ResponseEntity.ok(user);
-    }
-
-    @PostMapping
-    public ResponseEntity<User> createUser(@RequestHeader("Authorization") String authHeader, @RequestBody User user) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        if (!userService.isAdmin(sub)) {
-            return ResponseEntity.status(403).body(null);
-        }
-        return ResponseEntity.ok(userService.saveUser(user));
-    }
-
-    @PutMapping("/{userId}")
-    public ResponseEntity<User> updateUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long userId, @RequestBody User user) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        if (!userId.equals(sub) && !userService.isAdmin(sub)) {
-            return ResponseEntity.status(403).body(null);
-        }
-        user.setUserId(userId);
-        return ResponseEntity.ok(userService.saveUser(user));
-    }
-
-    @DeleteMapping("/{userId}")
-    public ResponseEntity<Void> deleteUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long userId) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        if (!userService.isAdmin(sub)) {
-            return ResponseEntity.status(403).build();
-        }
-        userService.deleteUser(userId);
-        return ResponseEntity.noContent().build();
+        assertEquals(1L, role.getRoleId());
+        assertEquals("Admin", role.getRoleName());
     }
 }
+package com.hsbc.managementStudio.model;
 
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+class ProjectUserMappingTest {
+
+    @Test
+    void testProjectUserMappingModel() {
+        Role role = new Role(1L, "Admin");
+        User user = new User("1", "testUser", "testPicUrl", "testEmail", role);
+        Project project = new Project(1L, "ProjectName");
+        ProjectUserMapping mapping = new ProjectUserMapping(1L, project, user, role);
+
+        assertEquals(1L, mapping.getMappingId());
+        assertEquals(project, mapping.getProject());
+        assertEquals(user, mapping.getUser());
+        assertEquals(role, mapping.getRole());
+    }
+}
+package com.hsbc.managementStudio.model;
+
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+class ProjectTest {
+
+    @Test
+    void testProjectModel() {
+        Project project = new Project(1L, "ProjectName");
+
+        assertEquals(1L, project.getProjectId());
+        assertEquals("ProjectName", project.getProjectName());
+    }
+}
 package com.hsbc.managementStudio.controller;
 
-import com.hsbc.managementStudio.entity.Project;
-import com.hsbc.managementStudio.entity.ProjectUserMapping;
-import com.hsbc.managementStudio.entity.User;
+import com.hsbc.managementStudio.model.Project;
 import com.hsbc.managementStudio.service.ProjectService;
-import com.hsbc.managementStudio.service.ProjectUserMappingService;
-import com.hsbc.managementStudio.service.UserService;
-import com.hsbc.managementStudio.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController
-@RequestMapping("/api/projects")
-public class ProjectController {
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-    @Autowired
-    private ProjectService projectService;
+class ProjectControllerTest {
 
-    @Autowired
-    private UserService userService;
+    @InjectMocks
+    ProjectController projectController;
 
-    @Autowired
-    private ProjectUserMappingService mappingService;
+    @Mock
+    ProjectService projectService;
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @GetMapping
-    public ResponseEntity<List<Project>> getAllProjects(@RequestHeader("Authorization") String authHeader) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        if (!userService.isAdmin(sub)) {
-            User user = userService.getUserById(Long.parseLong(sub));
-            List<ProjectUserMapping> mappings = mappingService.getProjectsByUser(user);
-            List<Project> projects = mappings.stream().map(ProjectUserMapping::getProject).toList();
-            return ResponseEntity.ok(projects);
-        }
-        return ResponseEntity.ok(projectService.getAllProjects());
+    public ProjectControllerTest() {
+        MockitoAnnotations.openMocks(this);
     }
 
-    @PostMapping
-    public ResponseEntity<Project> createProject(@RequestHeader("Authorization") String authHeader, @RequestBody Project project) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        if (!userService.isAdmin(sub)) {
-            return ResponseEntity.status(403).body(null);
-        }
-        return ResponseEntity.ok(projectService.saveProject(project));
-    }
+    @Test
+    void testGetAllProjects() {
+        List<Project> projects = List.of(new Project(1L, "Project1"), new Project(2L, "Project2"));
+        when(projectService.getAllProjects()).thenReturn(projects);
 
-    @PutMapping("/{projectId}")
-    public ResponseEntity<Project> updateProject(@RequestHeader("Authorization") String authHeader, @PathVariable Long projectId, @RequestBody Project project) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        if (!userService.isAdmin(sub)) {
-            return ResponseEntity.status(403).body(null);
-        }
-        project.setProjectId(projectId);
-        return ResponseEntity.ok(projectService.saveProject(project));
-    }
+        ResponseEntity<List<Project>> response = projectController.getAllProjects();
 
-    @DeleteMapping("/{projectId}")
-    public ResponseEntity<Void> deleteProject(@RequestHeader("Authorization") String authHeader, @PathVariable Long projectId) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        if (!userService.isAdmin(sub)) {
-            return ResponseEntity.status(403).build();
-        }
-        projectService.deleteProject(projectId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/{projectId}/addUser")
-    public ResponseEntity<Void> addUserToProject(@RequestHeader("Authorization") String authHeader, @PathVariable Long projectId, @RequestParam Long userId, @RequestParam String roleName) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        if (!userService.isAdmin(sub)) {
-            return ResponseEntity.status(403).build();
-        }
-        Project project = projectService.getProjectById(projectId);
-        User user = userService.getUserById(userId);
-        mappingService.saveMapping(new ProjectUserMapping(null, project, user, roleName));
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/{projectId}/removeUser")
-    public ResponseEntity<Void> removeUserFromProject(@RequestHeader("Authorization") String authHeader, @PathVariable Long projectId, @RequestParam Long userId) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        if (!userService.isAdmin(sub)) {
-            return ResponseEntity.status(403).build();
-        }
-        Project project = projectService.getProjectById(projectId);
-        User user = userService.getUserById(userId);
-        List<ProjectUserMapping> mappings = mappingService.getUsersByProject(project);
-        mappings.stream().filter(mapping -> mapping.getUser().equals(user)).findFirst()
-                .ifPresent(mapping -> mappingService.deleteMapping(mapping.getMappingId()));
-        return ResponseEntity.noContent().build();
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(2, response.getBody().size());
     }
 }
-
-
 package com.hsbc.managementStudio.controller;
 
-import com.hsbc.managementStudio.entity.Project;
-import com.hsbc.managementStudio.entity.ProjectUserMapping;
-import com.hsbc.managementStudio.entity.User;
-import com.hsbc.managementStudio.service.ProjectService;
+import com.hsbc.managementStudio.model.*;
 import com.hsbc.managementStudio.service.ProjectUserMappingService;
-import com.hsbc.managementStudio.service.UserService;
-import com.hsbc.managementStudio.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
-@RestController
-@RequestMapping("/api/project-user-mapping")
-public class ProjectUserMappingController {
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-    @Autowired
-    private ProjectUserMappingService mappingService;
+class ProjectUserMappingControllerTest {
 
-    @Autowired
-    private UserService userService;
+    @InjectMocks
+    ProjectUserMappingController mappingController;
 
-    @Autowired
-    private ProjectService projectService;
+    @Mock
+    ProjectUserMappingService mappingService;
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @GetMapping("/projects/{userId}")
-    public ResponseEntity<List<Project>> getProjectsByUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long userId) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        if (!userService.isAdmin(sub) && !userId.equals(Long.parseLong(sub))) {
-            return ResponseEntity.status(403).body(null);
-        }
-        User user = userService.getUserById(userId);
-        if (user == null) {
-            return ResponseEntity.status(404).body(null);
-        }
-        List<Project> projects = mappingService.getProjectsByUser(user).stream()
-                .map(ProjectUserMapping::getProject)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(projects);
+    public ProjectUserMappingControllerTest() {
+        MockitoAnnotations.openMocks(this);
     }
 
-    @GetMapping("/users/{projectId}")
-    public ResponseEntity<List<User>> getUsersByProject(@RequestHeader("Authorization") String authHeader, @PathVariable Long projectId) {
-        String sub = jwtUtil.getSubFromJwt(authHeader);
-        if (!userService.isAdmin(sub)) {
-            return ResponseEntity.status(403).body(null);
-        }
-        Project project = projectService.getProjectById(projectId);
-        if (project == null) {
-            return ResponseEntity.status(404).body(null);
-        }
-        List<User> users = mappingService.getUsersByProject(project).stream()
-                .map(ProjectUserMapping::getUser)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(users);
+    @Test
+    void testGetProjectsByUser() {
+        User user = new User("1", "testUser", "testPicUrl", "testEmail", new Role(1L, "Admin"));
+        List<ProjectUserMapping> mappings = List.of(
+                new ProjectUserMapping(1L, new Project(1L, "Project1"), user, user.getRole())
+        );
+        when(mappingService.getProjectsByUser(user)).thenReturn(mappings);
+
+        ResponseEntity<List<Project>> response = mappingController.getProjectsByUser("1");
+
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(1, response.getBody().size());
     }
 }
+package com.hsbc.managementStudio.service;
 
+import com.hsbc.managementStudio.model.Project;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
-            
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class ProjectServiceTest {
+
+    @Mock
+    ProjectService projectService;
+
+    public ProjectServiceTest() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void testGetAllProjects() {
+        List<Project> projects = List.of(new Project(1L, "Project1"), new Project(2L, "Project2"));
+        when(projectService.getAllProjects()).thenReturn(projects);
+
+        List<Project> result = projectService.getAllProjects();
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+    }
+}
