@@ -11,7 +11,7 @@ import org.mockito.Mock;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
-
+import java.time.LocalDateTime;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -50,39 +50,108 @@ class ProjectControllerTest {
         request = new MockHttpServletRequest();
     }
 
+    // CREATE: Test POST method for creating a new project
     @Test
     void testCreateProject_WithValidAuthHeader_ShouldReturnCreatedStatus() {
-        // Mock behavior
         String authHeader = "Bearer some-jwt-token";
         request.addHeader("Authorization", authHeader);
 
-        // Mocking JWT extraction and user service
         when(jwtUtil.extractSubject(authHeader)).thenReturn("adminUser");
         when(userService.isAdmin("adminUser")).thenReturn(true);
         when(projectService.createProject(testProject)).thenReturn(testProject);
 
-        // Call the controller method
         ResponseEntity<Project> response = projectController.createProject(authHeader, testProject);
 
-        // Validate response
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(testProject.getProjectName(), response.getBody().getProjectName());
     }
 
+    // READ: Test GET method for fetching a project by ID
     @Test
-    void testCreateProject_WithNonAdminUser_ShouldReturnForbiddenStatus() {
-        // Mock behavior
+    void testGetProjectById_WithValidId_ShouldReturnProject() {
         String authHeader = "Bearer some-jwt-token";
         request.addHeader("Authorization", authHeader);
 
-        // Mocking JWT extraction and user service
+        when(jwtUtil.extractSubject(authHeader)).thenReturn("adminUser");
+        when(userService.isAdmin("adminUser")).thenReturn(true);
+        when(projectService.getProjectById(1L)).thenReturn(testProject);
+
+        ResponseEntity<Project> response = projectController.getProjectById(authHeader, 1L);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(testProject.getProjectId(), response.getBody().getProjectId());
+    }
+
+    // UPDATE: Test PUT method for updating an existing project
+    @Test
+    void testUpdateProject_WithValidAuthHeader_ShouldReturnUpdatedProject() {
+        String authHeader = "Bearer some-jwt-token";
+        request.addHeader("Authorization", authHeader);
+
+        when(jwtUtil.extractSubject(authHeader)).thenReturn("adminUser");
+        when(userService.isAdmin("adminUser")).thenReturn(true);
+        when(projectService.updateProject(1L, testProject)).thenReturn(testProject);
+
+        ResponseEntity<Project> response = projectController.updateProject(authHeader, 1L, testProject);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(testProject.getProjectName(), response.getBody().getProjectName());
+    }
+
+    // DELETE: Test DELETE method for deleting a project by ID
+    @Test
+    void testDeleteProject_WithValidAuthHeader_ShouldReturnNoContent() {
+        String authHeader = "Bearer some-jwt-token";
+        request.addHeader("Authorization", authHeader);
+
+        when(jwtUtil.extractSubject(authHeader)).thenReturn("adminUser");
+        when(userService.isAdmin("adminUser")).thenReturn(true);
+        doNothing().when(projectService).deleteProject(1L);
+
+        ResponseEntity<Void> response = projectController.deleteProject(authHeader, 1L);
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+    }
+
+    // Test for non-admin user attempting to create a project
+    @Test
+    void testCreateProject_WithNonAdminUser_ShouldReturnForbidden() {
+        String authHeader = "Bearer some-jwt-token";
+        request.addHeader("Authorization", authHeader);
+
         when(jwtUtil.extractSubject(authHeader)).thenReturn("regularUser");
         when(userService.isAdmin("regularUser")).thenReturn(false);
 
-        // Call the controller method
         ResponseEntity<Project> response = projectController.createProject(authHeader, testProject);
 
-        // Validate response
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    // Test for non-admin user attempting to update a project
+    @Test
+    void testUpdateProject_WithNonAdminUser_ShouldReturnForbidden() {
+        String authHeader = "Bearer some-jwt-token";
+        request.addHeader("Authorization", authHeader);
+
+        when(jwtUtil.extractSubject(authHeader)).thenReturn("regularUser");
+        when(userService.isAdmin("regularUser")).thenReturn(false);
+
+        ResponseEntity<Project> response = projectController.updateProject(authHeader, 1L, testProject);
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    // Test for non-admin user attempting to delete a project
+    @Test
+    void testDeleteProject_WithNonAdminUser_ShouldReturnForbidden() {
+        String authHeader = "Bearer some-jwt-token";
+        request.addHeader("Authorization", authHeader);
+
+        when(jwtUtil.extractSubject(authHeader)).thenReturn("regularUser");
+        when(userService.isAdmin("regularUser")).thenReturn(false);
+
+        ResponseEntity<Void> response = projectController.deleteProject(authHeader, 1L);
+
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
     }
 }
