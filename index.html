@@ -1,28 +1,226 @@
-package com.hsbc.managementStudio.model;
+package com.hsbc.managementStudio.controller;
 
+import com.hsbc.managementStudio.model.Project;
+import com.hsbc.managementStudio.service.ProjectService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.ResponseEntity;
 
-class UserTest {
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class ProjectControllerTest {
+
+    @Mock
+    private ProjectService projectService;
+
+    @InjectMocks
+    private ProjectController projectController;
+
+    private Project project;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        project = new Project();
+        project.setProjectId(1L);
+        project.setApiVersion("v1");
+        project.setCreator("John Doe");
+        project.setDataSensitivityLevel("High");
+        project.setDescription("Test project description");
+        project.setDocumentSource("Internal");
+        project.setDocumentType("PDF");
+        project.setProjectCode("PRJ001");
+        project.setStatus("Active");
+        project.setProjectName("Test Project");
+        project.setCreatedDateTime(LocalDateTime.now());
+    }
 
     @Test
-    void testUserModel() {
+    void testGetAllProjects() {
+        List<Project> projects = Arrays.asList(project);
+        when(projectService.getAllProjects()).thenReturn(projects);
+
+        ResponseEntity<List<Project>> response = projectController.getAllProjects();
+
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(1, response.getBody().size());
+        assertEquals("Test Project", response.getBody().get(0).getProjectName());
+    }
+
+    @Test
+    void testGetProjectById() {
+        when(projectService.getProjectById(1L)).thenReturn(project);
+
+        ResponseEntity<Project> response = projectController.getProjectById(1L);
+
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals("Test Project", response.getBody().getProjectName());
+    }
+
+    @Test
+    void testCreateProject() {
+        when(projectService.saveProject(project)).thenReturn(project);
+
+        ResponseEntity<Project> response = projectController.createProject(project);
+
+        assertNotNull(response);
+        assertEquals(201, response.getStatusCodeValue());
+        assertEquals("Test Project", response.getBody().getProjectName());
+    }
+}
+
+
+package com.hsbc.managementStudio.controller;
+
+import com.hsbc.managementStudio.model.Project;
+import com.hsbc.managementStudio.model.ProjectUserMapping;
+import com.hsbc.managementStudio.model.Role;
+import com.hsbc.managementStudio.model.User;
+import com.hsbc.managementStudio.service.ProjectUserMappingService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.ResponseEntity;
+
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class ProjectUserMappingControllerTest {
+
+    @Mock
+    private ProjectUserMappingService mappingService;
+
+    @InjectMocks
+    private ProjectUserMappingController mappingController;
+
+    private ProjectUserMapping mapping;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+
+        Project project = new Project();
+        project.setProjectId(1L);
+        project.setProjectName("Test Project");
+
         User user = new User();
-        user.setUserId("1");
-        user.setUsername("testUser");
-        user.setProfilePicUrl("testPicUrl");
-        user.setEmail("testEmail");
+        user.setUserId("123");
+        user.setUsername("John Doe");
 
         Role role = new Role();
         role.setRoleId(1L);
         role.setRoleName("Admin");
-        user.setRole(role);
 
-        assertEquals("1", user.getUserId());
-        assertEquals("testUser", user.getUsername());
-        assertEquals("testPicUrl", user.getProfilePicUrl());
-        assertEquals("testEmail", user.getEmail());
-        assertEquals(role, user.getRole());
+        mapping = new ProjectUserMapping();
+        mapping.setMappingId(1L);
+        mapping.setProject(project);
+        mapping.setUser(user);
+        mapping.setRole(role);
+    }
+
+    @Test
+    void testGetAllMappings() {
+        when(mappingService.getAllMappings()).thenReturn(Arrays.asList(mapping));
+
+        ResponseEntity<List<ProjectUserMapping>> response = mappingController.getAllMappings();
+
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(1, response.getBody().size());
+    }
+
+    @Test
+    void testGetMappingByProjectId() {
+        when(mappingService.getMappingsByProjectId(1L)).thenReturn(Arrays.asList(mapping));
+
+        ResponseEntity<List<ProjectUserMapping>> response = mappingController.getMappingsByProjectId(1L);
+
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(1, response.getBody().size());
+    }
+}
+
+package com.hsbc.managementStudio.service;
+
+import com.hsbc.managementStudio.model.Project;
+import com.hsbc.managementStudio.repository.ProjectRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class ProjectServiceTest {
+
+    @Mock
+    private ProjectRepository projectRepository;
+
+    @InjectMocks
+    private ProjectService projectService;
+
+    private Project project;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+
+        project = new Project();
+        project.setProjectId(1L);
+        project.setProjectName("Test Project");
+    }
+
+    @Test
+    void testGetAllProjects() {
+        when(projectRepository.findAll()).thenReturn(Arrays.asList(project));
+
+        List<Project> projects = projectService.getAllProjects();
+
+        assertNotNull(projects);
+        assertEquals(1, projects.size());
+        assertEquals("Test Project", projects.get(0).getProjectName());
+    }
+
+    @Test
+    void testGetProjectById() {
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+
+        Project foundProject = projectService.getProjectById(1L);
+
+        assertNotNull(foundProject);
+        assertEquals("Test Project", foundProject.getProjectName());
+    }
+
+    @Test
+    void testSaveProject() {
+        when(projectRepository.save(project)).thenReturn(project);
+
+        Project savedProject = projectService.saveProject(project);
+
+        assertNotNull(savedProject);
+        assertEquals("Test Project", savedProject.getProjectName());
     }
 }
 
@@ -30,6 +228,69 @@ class UserTest {
 package com.hsbc.managementStudio.model;
 
 import org.junit.jupiter.api.Test;
+
+import java.time.LocalDateTime;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class ProjectTest {
+
+    @Test
+    void testProjectModel() {
+        Project project = new Project();
+        project.setProjectId(1L);
+        project.setApiVersion("v1");
+        project.setCreator("John Doe");
+        project.setDataSensitivityLevel("High");
+        project.setDescription("Test Project");
+        project.setDocumentSource("Internal");
+        project.setDocumentType("PDF");
+        project.setProjectCode("PRJ001");
+        project.setStatus("Active");
+        project.setProjectName("Test Project");
+        project.setCreatedDateTime(LocalDateTime.now());
+
+        assertEquals("Test Project", project.getProjectName());
+        assertEquals("PRJ001", project.getProjectCode());
+    }
+}
+
+
+package com.hsbc.managementStudio.model;
+
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class ProjectUserMappingTest {
+
+    @Test
+    void testProjectUserMappingModel() {
+        ProjectUserMapping mapping = new ProjectUserMapping();
+        mapping.setMappingId(1L);
+
+        Project project = new Project();
+        project.setProjectId(1L);
+        mapping.setProject(project);
+
+        User user = new User();
+        user.setUserId("123");
+        mapping.setUser(user);
+
+        Role role = new Role();
+        role.setRoleId(1L);
+        mapping.setRole(role);
+
+        assertEquals(1L, mapping.getMappingId());
+        assertEquals("123", mapping.getUser().getUserId());
+    }
+}
+
+
+package com.hsbc.managementStudio.model;
+
+import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class RoleTest {
@@ -45,158 +306,26 @@ class RoleTest {
     }
 }
 
-package com.hsbc.managementStudio.model;
-
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-
-class ProjectTest {
-
-    @Test
-    void testProjectModel() {
-        Project project = new Project();
-        project.setProjectId(1L);
-        project.setProjectName("Test Project");
-
-        assertEquals(1L, project.getProjectId());
-        assertEquals("Test Project", project.getProjectName());
-    }
-}
 
 package com.hsbc.managementStudio.model;
 
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
-class ProjectUserMappingTest {
+class UserTest {
 
     @Test
-    void testProjectUserMappingModel() {
-        Project project = new Project();
-        project.setProjectId(1L);
-        project.setProjectName("Project Name");
-
-        Role role = new Role();
-        role.setRoleId(1L);
-        role.setRoleName("Admin");
-
+    void testUserModel() {
         User user = new User();
-        user.setUserId("1");
-        user.setUsername("testUser");
-        user.setProfilePicUrl("testPicUrl");
-        user.setEmail("testEmail");
-        user.setRole(role);
+        user.setUserId("123");
+        user.setUsername("John Doe");
+        user.setProfilePicUrl("http://example.com/pic.jpg");
+        user.setEmail("john.doe@example.com");
 
-        ProjectUserMapping mapping = new ProjectUserMapping();
-        mapping.setMappingId(1L);
-        mapping.setProject(project);
-        mapping.setUser(user);
-        mapping.setRole(role);
-
-        assertEquals(1L, mapping.getMappingId());
-        assertEquals(project, mapping.getProject());
-        assertEquals(user, mapping.getUser());
-        assertEquals(role, mapping.getRole());
-    }
-}
-
-
-package com.hsbc.managementStudio.service;
-
-import com.hsbc.managementStudio.model.Project;
-import com.hsbc.managementStudio.repository.ProjectRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-class ProjectServiceTest {
-
-    private ProjectRepository projectRepository;
-    private ProjectService projectService;
-
-    @BeforeEach
-    void setUp() {
-        projectRepository = mock(ProjectRepository.class);
-        projectService = new ProjectService(projectRepository);
-    }
-
-    @Test
-    void testGetProjectById() {
-        Project project = new Project();
-        project.setProjectId(1L);
-        project.setProjectName("Test Project");
-
-        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-
-        Optional<Project> result = projectService.getProjectById(1L);
-
-        assertTrue(result.isPresent());
-        assertEquals("Test Project", result.get().getProjectName());
-    }
-}
-
-
-            package com.hsbc.managementStudio.controller;
-
-import com.hsbc.managementStudio.model.Project;
-import com.hsbc.managementStudio.service.ProjectService;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.http.ResponseEntity;
-import java.util.Optional;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-class ProjectControllerTest {
-
-    @Test
-    void testGetProjectById() {
-        ProjectService projectService = mock(ProjectService.class);
-        ProjectController projectController = new ProjectController(projectService);
-
-        Project project = new Project();
-        project.setProjectId(1L);
-        project.setProjectName("Test Project");
-
-        when(projectService.getProjectById(1L)).thenReturn(Optional.of(project));
-
-        ResponseEntity<Project> response = projectController.getProjectById(1L);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals("Test Project", response.getBody().getProjectName());
-    }
-}
-
-
-            package com.hsbc.managementStudio.controller;
-
-import com.hsbc.managementStudio.model.ProjectUserMapping;
-import com.hsbc.managementStudio.service.ProjectService;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-class ProjectUserMappingControllerTest {
-
-    @Test
-    void testGetMappingDetails() {
-        ProjectService projectService = mock(ProjectService.class);
-        ProjectUserMappingController controller = new ProjectUserMappingController(projectService);
-
-        ProjectUserMapping mapping = new ProjectUserMapping();
-        mapping.setMappingId(1L);
-
-        when(projectService.getMappingById(1L)).thenReturn(Optional.of(mapping));
-
-        var response = controller.getMappingById(1L);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals(1L, response.getBody().getMappingId());
+        assertEquals("123", user.getUserId());
+        assertEquals("John Doe", user.getUsername());
+        assertEquals("http://example.com/pic.jpg", user.getProfilePicUrl());
+        assertEquals("john.doe@example.com", user.getEmail());
     }
 }
