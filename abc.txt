@@ -8,8 +8,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.mock.web.MockHttpServletRequest;
+
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,7 +30,7 @@ class ProjectControllerTest {
     private ProjectController projectController;
 
     private Project testProject;
-    private String authHeader;
+    private MockHttpServletRequest request;
 
     @BeforeEach
     void setUp() {
@@ -45,125 +47,42 @@ class ProjectControllerTest {
         testProject.setProjectName("Project Test");
         testProject.setCreatedDateTime(LocalDateTime.now());
 
-        authHeader = "Bearer some-jwt-token";  // Assuming a JWT token is provided in the header.
+        request = new MockHttpServletRequest();
     }
 
     @Test
     void testCreateProject_WithValidAuthHeader_ShouldReturnCreatedStatus() {
         // Mock behavior
+        String authHeader = "Bearer some-jwt-token";
+        request.addHeader("Authorization", authHeader);
+
+        // Mocking JWT extraction and user service
         when(jwtUtil.extractSubject(authHeader)).thenReturn("adminUser");
-        when(userService.isUserAdmin("adminUser")).thenReturn(true);
+        when(userService.isAdmin("adminUser")).thenReturn(true);
         when(projectService.createProject(testProject)).thenReturn(testProject);
 
         // Call the controller method
         ResponseEntity<Project> response = projectController.createProject(authHeader, testProject);
 
         // Validate response
-        assertEquals(201, response.getStatusCodeValue());
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(testProject.getProjectName(), response.getBody().getProjectName());
     }
 
     @Test
     void testCreateProject_WithNonAdminUser_ShouldReturnForbiddenStatus() {
         // Mock behavior
+        String authHeader = "Bearer some-jwt-token";
+        request.addHeader("Authorization", authHeader);
+
+        // Mocking JWT extraction and user service
         when(jwtUtil.extractSubject(authHeader)).thenReturn("regularUser");
-        when(userService.isUserAdmin("regularUser")).thenReturn(false);
+        when(userService.isAdmin("regularUser")).thenReturn(false);
 
         // Call the controller method
         ResponseEntity<Project> response = projectController.createProject(authHeader, testProject);
 
         // Validate response
-        assertEquals(403, response.getStatusCodeValue());
-    }
-}
-
-
-package com.hsbc.managementStudio.project.service;
-
-import com.hsbc.managementStudio.project.model.Project;
-import com.hsbc.managementStudio.project.repository.ProjectRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-class ProjectServiceTest {
-
-    @Mock
-    private ProjectRepository projectRepository;
-
-    @InjectMocks
-    private ProjectService projectService;
-
-    private Project testProject;
-
-    @BeforeEach
-    void setUp() {
-        testProject = new Project();
-        testProject.setProjectId(1L);
-        testProject.setApiVersion("v1");
-        testProject.setCreator("John Doe");
-        testProject.setDataSensitivityLevel("High");
-        testProject.setDescription("Test project description");
-        testProject.setDocumentSource("Internal");
-        testProject.setDocumentType("PDF");
-        testProject.setProjectCode("PRJ001");
-        testProject.setStatus("Active");
-        testProject.setProjectName("Project Test");
-        testProject.setCreatedDateTime(LocalDateTime.now());
-    }
-
-    @Test
-    void testCreateProject_ShouldReturnSavedProject() {
-        when(projectRepository.save(testProject)).thenReturn(testProject);
-
-        Project createdProject = projectService.createProject(testProject);
-
-        assertNotNull(createdProject);
-        assertEquals(testProject.getProjectName(), createdProject.getProjectName());
-        verify(projectRepository, times(1)).save(testProject);
-    }
-}
-
-
-package com.hsbc.managementStudio.project.controller;
-
-import com.hsbc.managementStudio.project.model.ProjectUserMapping;
-import com.hsbc.managementStudio.project.service.ProjectUserMappingService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-class ProjectUserMappingControllerTest {
-
-    @Mock
-    private ProjectUserMappingService projectUserMappingService;
-
-    @InjectMocks
-    private ProjectUserMappingController projectUserMappingController;
-
-    private ProjectUserMapping testMapping;
-    private String authHeader;
-
-    @BeforeEach
-    void setUp() {
-        testMapping = new ProjectUserMapping();
-        testMapping.setUserId(1L);
-        testMapping.setProjectId(1L);
-        testMapping.setRole("Admin");
-        authHeader = "Bearer some-jwt-token";
-    }
-
-    @Test
-    void testAssignUserToProject_ShouldReturnOkStatus() {
-        when(projectUserMappingService.assignUserToProject(testMapping)).thenReturn(testMapping);
-
-        ResponseEntity<ProjectUserMapping> response = projectUserMappingController.assignUserToProject(authHeader, testMapping);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals(testMapping.getRole(), response.getBody().getRole());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
     }
 }
