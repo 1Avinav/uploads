@@ -1,65 +1,119 @@
 package com.hsbc.managementStudio.project.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hsbc.managementStudio.project.ProjectApplication; // Ensure correct package
 import com.hsbc.managementStudio.project.model.Project;
+import com.hsbc.managementStudio.project.model.User;
 import com.hsbc.managementStudio.project.service.ProjectService;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.web.servlet.MockMvc;
+import com.hsbc.managementStudio.project.service.UserService;
+import com.hsbc.managementStudio.project.util.JwtUtil;
+import com.hsbc.managementStudio.project.repository.UserRepository;
+import com.hsbc.managementStudio.project.repository.ProjectRepository;
 
-import java.time.LocalDateTime;
-import java.util.Collections;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(classes = ProjectApplication.class)
-@ContextConfiguration(classes = ProjectApplication.class)
-@WebMvcTest(ProjectController.class)
-class ProjectControllerTest {
+public class ProjectControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @Mock
     private ProjectService projectService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Mock
+    private UserService userService;
 
-    private Project getSampleProject() {
-        Project project = new Project();
-        project.setProjectId(1L);
-        project.setProjectName("Project Test");
-        project.setApiVersion("v1");
-        project.setCreator("John Doe");
-        project.setDataSensitivityLevel("High");
-        project.setDescription("Test project description");
-        project.setDocumentSource("Internal");
-        project.setDocumentType("PDF");
-        project.setProjectCode("PRJ001");
-        project.setStatus("Active");
-        project.setCreatedDateTime(LocalDateTime.now());
-        return project;
+    @Mock
+    private JwtUtil jwtUtil;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private ProjectRepository projectRepository;
+
+    @InjectMocks
+    private ProjectController projectController;
+
+    private ObjectMapper objectMapper = new ObjectMapper();
+
+    private String adminToken = "mocked-jwt-token";
+
+    @BeforeEach
+    void setUp() {
+        // Initialize Mocks
+        MockitoAnnotations.openMocks(this);
+        mockMvc = MockMvcBuilders.standaloneSetup(projectController).build();
+
+        // Mock JwtUtil to extract the user subject from token
+        when(jwtUtil.extractSub(adminToken)).thenReturn("admin_user");
+
+        // Mock UserService to verify admin user
+        when(userService.isAdmin("admin_user")).thenReturn(true);
+
+        // Mock UserRepository behavior for finding users
+        User adminUser = new User();
+        adminUser.setUsername("admin_user");
+        when(userRepository.findBySub("admin_user")).thenReturn(Optional.of(adminUser));
     }
 
     @Test
-    void shouldCreateProject() throws Exception {
-        Project project = getSampleProject();
-        Mockito.when(projectService.createProject(any(Project.class))).thenReturn(project);
+    void testCreateProject() throws Exception {
+        Project project = new Project();
+        project.setProjectName("Test Project");
+        project.setDescription("Project Description");
+        project.setStatus("Active");
+
+        when(projectService.createProject(any(Project.class))).thenReturn(project);
 
         mockMvc.perform(post("/api/projects")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(project)))
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(project)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.projectName").value("Project Test"));
+                .andExpect(jsonPath("$.projectName").value("Test Project"))
+                .andExpect(jsonPath("$.description").value("Project Description"));
+    }
+
+    @Test
+    void testAddUserToProject() throws Exception {
+        Project project = new Project();
+        project.setProjectId(1L);
+        project.setProjectName("Test Project");
+
+        User user = new User();
+        user.setUserId(2L);
+        user.setUsername("test_user");
+
+        when(projectService.addUserToProject(1L, 2L)).thenReturn(project);
+
+        mockMvc.perform(post("/api/projects/1/users/2")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.projectName").value("Test Project"));
+    }
+
+    @Test
+    void testUnauthorizedAccess() throws Exception {
+        when(userService.isAdmin("non_admin_user")).thenReturn(false);
+        when(jwtUtil.extractSub("invalid-jwt-token")).thenReturn("non_admin_user");
+
+        mockMvc.perform(post("/api/projects")
+                        .header("Authorization", "Bearer invalid-jwt-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new Project())))
+                .andExpect(status().isForbidden());
     }
 }
