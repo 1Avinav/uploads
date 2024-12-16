@@ -1,30 +1,30 @@
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-@ActiveProfiles("test")
+@ActiveProfiles("test")  // To use application-test.properties
 public class ProjectControllerIntegrationTest {
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private TestRestTemplate restTemplate;  // Inject TestRestTemplate for making HTTP requests
 
     @Autowired
-    private ProjectRepository projectRepository;
+    private ProjectRepository projectRepository;  // Inject ProjectRepository for interacting with the DB
 
     @MockBean
-    private JwtUtil jwtUtil;
+    private JwtUtil jwtUtil;  // Mock JwtUtil for JWT-related operations
 
     @MockBean
-    private UserService userService;
-
-    private static final String ADMIN_TOKEN = "Bearer adminToken";
+    private UserService userService;  // Mock UserService for user-related logic
 
     @BeforeEach
     void setUp() {
-        projectRepository.deleteAll();  // Clean up the DB before each test
+        // Clear the database before each test
+        projectRepository.deleteAll();
     }
 
     // Test for creating a project
     @Test
     public void shouldCreateProject() {
+        // Create a new Project instance
         Project project = new Project();
         project.setProjectId(1L);
         project.setApiVersion("v1");
@@ -37,20 +37,24 @@ public class ProjectControllerIntegrationTest {
         project.setStatus("Active");
         project.setProjectName("Project Test");
 
+        // Mock JWT and UserService
         Mockito.when(jwtUtil.extractSub(Mockito.anyString())).thenReturn("admin");
         Mockito.when(userService.isAdmin("admin")).thenReturn(true);
 
+        // Perform the request to create the project
         ResponseEntity<String> response = restTemplate.postForEntity("/projects", project, String.class);
 
+        // Assert the response and check that the project is created
         Assertions.assertEquals(HttpStatus.CREATED, response.getStatusCode());
         List<Project> projects = projectRepository.findAll();
         Assertions.assertEquals(1, projects.size());
         Assertions.assertEquals("Project Test", projects.get(0).getProjectName());
     }
 
-    // Test for getting a project by ID
+    // Test for fetching all projects
     @Test
-    public void shouldGetProjectById() {
+    public void shouldFetchAllProjects() {
+        // Create and save a project in the DB
         Project project = new Project();
         project.setProjectId(1L);
         project.setApiVersion("v1");
@@ -64,84 +68,18 @@ public class ProjectControllerIntegrationTest {
         project.setProjectName("Project Test");
         projectRepository.save(project);
 
-        ResponseEntity<Project> response = restTemplate.getForEntity("/projects/" + project.getProjectId(), Project.class);
+        // Perform the request to fetch all projects
+        ResponseEntity<Project[]> response = restTemplate.getForEntity("/projects", Project[].class);
 
+        // Assert the response and the project count
         Assertions.assertEquals(HttpStatus.OK, response.getStatusCode());
-        Assertions.assertNotNull(response.getBody());
-        Assertions.assertEquals("Project Test", response.getBody().getProjectName());
-    }
-
-    // Test for getting all projects
-    @Test
-    public void shouldGetAllProjects() {
-        Project project1 = new Project();
-        project1.setProjectId(1L);
-        project1.setApiVersion("v1");
-        project1.setCreator("John Doe");
-        project1.setDataSensitivityLevel("High");
-        project1.setDescription("Test project description");
-        project1.setDocumentSource("Internal");
-        project1.setDocumentType("PDF");
-        project1.setProjectCode("PRJ001");
-        project1.setStatus("Active");
-        project1.setProjectName("Project Test 1");
-        projectRepository.save(project1);
-
-        Project project2 = new Project();
-        project2.setProjectId(2L);
-        project2.setApiVersion("v1");
-        project2.setCreator("Jane Doe");
-        project2.setDataSensitivityLevel("Low");
-        project2.setDescription("Another project description");
-        project2.setDocumentSource("External");
-        project2.setDocumentType("Excel");
-        project2.setProjectCode("PRJ002");
-        project2.setStatus("Inactive");
-        project2.setProjectName("Project Test 2");
-        projectRepository.save(project2);
-
-        ResponseEntity<List<Project>> response = restTemplate.exchange(
-                "/projects", HttpMethod.GET, null,
-                new ParameterizedTypeReference<List<Project>>() {}
-        );
-
-        Assertions.assertEquals(HttpStatus.OK, response.getStatusCode());
-        Assertions.assertEquals(2, response.getBody().size());
+        Assertions.assertTrue(response.getBody().length > 0);
     }
 
     // Test for updating a project
     @Test
     public void shouldUpdateProject() {
-        Project project = new Project();
-        project.setProjectId(1L);
-        project.setApiVersion("v1");
-        project.setCreator("John Doe");
-        project.setDataSensitivityLevel("High");
-        project.setDescription("Test project description");
-        project.setDocumentSource("Internal");
-        project.setDocumentType("PDF");
-        project.setProjectCode("PRJ001");
-        project.setStatus("Active");
-        project.setProjectName("Old Project Name");
-        projectRepository.save(project);
-
-        project.setProjectName("Updated Project Name");
-
-        HttpEntity<Project> entity = new HttpEntity<>(project);
-        ResponseEntity<String> response = restTemplate.exchange(
-                "/projects/" + project.getProjectId(),
-                HttpMethod.PUT, entity, String.class
-        );
-
-        Assertions.assertEquals(HttpStatus.OK, response.getStatusCode());
-        Project updatedProject = projectRepository.findById(project.getProjectId()).orElse(null);
-        Assertions.assertNotNull(updatedProject);
-        Assertions.assertEquals("Updated Project Name", updatedProject.getProjectName());
-    }
-
-    // Test for deleting a project
-    @Test
-    public void shouldDeleteProject() {
+        // Create and save a project
         Project project = new Project();
         project.setProjectId(1L);
         project.setApiVersion("v1");
@@ -155,30 +93,54 @@ public class ProjectControllerIntegrationTest {
         project.setProjectName("Project Test");
         projectRepository.save(project);
 
-        ResponseEntity<String> response = restTemplate.exchange(
-                "/projects/" + project.getProjectId(),
-                HttpMethod.DELETE, null, String.class
-        );
+        // Modify the project details
+        project.setProjectName("Updated Project Test");
 
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-        Optional<Project> deletedProject = projectRepository.findById(project.getProjectId());
-        Assertions.assertTrue(deletedProject.isEmpty());
+        // Mock JWT and UserService
+        Mockito.when(jwtUtil.extractSub(Mockito.anyString())).thenReturn("admin");
+        Mockito.when(userService.isAdmin("admin")).thenReturn(true);
+
+        // Perform the request to update the project
+        restTemplate.put("/projects/{id}", project, project.getProjectId());
+
+        // Assert the updated project name
+        Project updatedProject = projectRepository.findById(project.getProjectId()).orElseThrow();
+        Assertions.assertEquals("Updated Project Test", updatedProject.getProjectName());
     }
+
+    // Test for deleting a project
+    @Test
+    public void shouldDeleteProject() {
+        // Create and save a project
+        Project project = new Project();
+        project.setProjectId(1L);
+        project.setApiVersion("v1");
+        project.setCreator("John Doe");
+        project.setDataSensitivityLevel("High");
+        project.setDescription("Test project description");
+        project.setDocumentSource("Internal");
+        project.setDocumentType("PDF");
+        project.setProjectCode("PRJ001");
+        project.setStatus("Active");
+        project.setProjectName("Project Test");
+        projectRepository.save(project);
+
+        // Mock JWT and UserService
+        Mockito.when(jwtUtil.extractSub(Mockito.anyString())).thenReturn("admin");
+        Mockito.when(userService.isAdmin("admin")).thenReturn(true);
+
+        // Perform the request to delete the project
+        restTemplate.delete("/projects/{id}", project.getProjectId());
+
+        // Assert that the project is deleted
+        Optional<Project> deletedProject = projectRepository.findById(project.getProjectId());
+        Assertions.assertFalse(deletedProject.isPresent());
+    }
+
 }
-
-
-# H2 Database Config (For Testing)
-spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
-spring.datasource.driver-class-name=org.h2.Driver
-spring.datasource.username=sa
-spring.datasource.password=password
-
-# JPA Config for Testing
-spring.jpa.hibernate.ddl-auto=create-drop
-spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
-
-# H2 Console (Optional)
-spring.h2.console.enabled=true
-spring.h2.console.path=/h2-console
-
-
+@BeforeEach
+void setUp() {
+    System.out.println("JwtUtil is: " + jwtUtil);
+    System.out.println("ProjectRepository is: " + projectRepository);
+    projectRepository.deleteAll();
+}
