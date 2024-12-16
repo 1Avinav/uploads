@@ -1,0 +1,65 @@
+package com.hsbc.managementStudio.project.controller;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hsbc.managementStudio.project.ProjectApplication; // Ensure correct package
+import com.hsbc.managementStudio.project.model.Project;
+import com.hsbc.managementStudio.project.service.ProjectService;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDateTime;
+import java.util.Collections;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@SpringBootTest(classes = ProjectApplication.class)
+@ContextConfiguration(classes = ProjectApplication.class)
+@WebMvcTest(ProjectController.class)
+class ProjectControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private ProjectService projectService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private Project getSampleProject() {
+        Project project = new Project();
+        project.setProjectId(1L);
+        project.setProjectName("Project Test");
+        project.setApiVersion("v1");
+        project.setCreator("John Doe");
+        project.setDataSensitivityLevel("High");
+        project.setDescription("Test project description");
+        project.setDocumentSource("Internal");
+        project.setDocumentType("PDF");
+        project.setProjectCode("PRJ001");
+        project.setStatus("Active");
+        project.setCreatedDateTime(LocalDateTime.now());
+        return project;
+    }
+
+    @Test
+    void shouldCreateProject() throws Exception {
+        Project project = getSampleProject();
+        Mockito.when(projectService.createProject(any(Project.class))).thenReturn(project);
+
+        mockMvc.perform(post("/api/projects")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(project)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.projectName").value("Project Test"));
+    }
+}
