@@ -167,3 +167,18 @@ public class ProjectControllerIntegrationTest {
 }
 
 
+# H2 Database Config (For Testing)
+spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=password
+
+# JPA Config for Testing
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+
+# H2 Console (Optional)
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+
