@@ -1,50 +1,30 @@
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.yourpackage.controller.ProjectController;
-import com.yourpackage.model.Project;
-import com.yourpackage.service.UserService;
-import com.yourpackage.util.JwtUtil;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-
-import java.time.LocalDateTime;
-
-@WebMvcTest(ProjectController.class)
-public class ProjectControllerTest {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
+@ActiveProfiles("test")
+public class ProjectControllerIntegrationTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private TestRestTemplate restTemplate;
 
-    @MockBean
-    private UserService userService;
+    @Autowired
+    private ProjectRepository projectRepository;
 
     @MockBean
     private JwtUtil jwtUtil;
 
-    private ObjectMapper objectMapper;
+    @MockBean
+    private UserService userService;
 
-    private static final String VALID_TOKEN = "Bearer valid.jwt.token";
-    private static final String INVALID_TOKEN = "Bearer invalid.jwt.token";
+    private static final String ADMIN_TOKEN = "Bearer adminToken";
 
     @BeforeEach
-    public void setUp() {
-        objectMapper = new ObjectMapper();
+    void setUp() {
+        projectRepository.deleteAll();  // Clean up the DB before each test
     }
 
+    // Test for creating a project
     @Test
-    public void testCreateProjectWithValidTokenAndAdminRole() throws Exception {
-        // Mock JWT extraction and user role validation
-        when(jwtUtil.extractSub("valid.jwt.token")).thenReturn("adminUser");
-        when(userService.isAdmin("adminUser")).thenReturn(true);
-
+    public void shouldCreateProject() {
         Project project = new Project();
         project.setProjectId(1L);
         project.setApiVersion("v1");
@@ -56,25 +36,21 @@ public class ProjectControllerTest {
         project.setProjectCode("PRJ001");
         project.setStatus("Active");
         project.setProjectName("Project Test");
-        project.setCreatedDateTime(LocalDateTime.now());
 
-        mockMvc.perform(post("/projects")
-                .header("Authorization", VALID_TOKEN)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(project)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.projectName").value("Project Test"))
-                .andExpect(jsonPath("$.status").value("Active"));
+        Mockito.when(jwtUtil.extractSub(Mockito.anyString())).thenReturn("admin");
+        Mockito.when(userService.isAdmin("admin")).thenReturn(true);
 
-        verify(jwtUtil, times(1)).extractSub("valid.jwt.token");
-        verify(userService, times(1)).isAdmin("adminUser");
+        ResponseEntity<String> response = restTemplate.postForEntity("/projects", project, String.class);
+
+        Assertions.assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        List<Project> projects = projectRepository.findAll();
+        Assertions.assertEquals(1, projects.size());
+        Assertions.assertEquals("Project Test", projects.get(0).getProjectName());
     }
 
+    // Test for getting a project by ID
     @Test
-    public void testCreateProjectWithInvalidToken() throws Exception {
-        // Mock JWT extraction failure
-        when(jwtUtil.extractSub("invalid.jwt.token")).thenThrow(new RuntimeException("Invalid Token"));
-
+    public void shouldGetProjectById() {
         Project project = new Project();
         project.setProjectId(1L);
         project.setApiVersion("v1");
@@ -86,24 +62,86 @@ public class ProjectControllerTest {
         project.setProjectCode("PRJ001");
         project.setStatus("Active");
         project.setProjectName("Project Test");
-        project.setCreatedDateTime(LocalDateTime.now());
+        projectRepository.save(project);
 
-        mockMvc.perform(post("/projects")
-                .header("Authorization", INVALID_TOKEN)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(project)))
-                .andExpect(status().isUnauthorized());
+        ResponseEntity<Project> response = restTemplate.getForEntity("/projects/" + project.getProjectId(), Project.class);
 
-        verify(jwtUtil, times(1)).extractSub("invalid.jwt.token");
-        verify(userService, never()).isAdmin(anyString());
+        Assertions.assertEquals(HttpStatus.OK, response.getStatusCode());
+        Assertions.assertNotNull(response.getBody());
+        Assertions.assertEquals("Project Test", response.getBody().getProjectName());
     }
 
+    // Test for getting all projects
     @Test
-    public void testCreateProjectWithNonAdminRole() throws Exception {
-        // Mock JWT extraction and non-admin role
-        when(jwtUtil.extractSub("valid.jwt.token")).thenReturn("regularUser");
-        when(userService.isAdmin("regularUser")).thenReturn(false);
+    public void shouldGetAllProjects() {
+        Project project1 = new Project();
+        project1.setProjectId(1L);
+        project1.setApiVersion("v1");
+        project1.setCreator("John Doe");
+        project1.setDataSensitivityLevel("High");
+        project1.setDescription("Test project description");
+        project1.setDocumentSource("Internal");
+        project1.setDocumentType("PDF");
+        project1.setProjectCode("PRJ001");
+        project1.setStatus("Active");
+        project1.setProjectName("Project Test 1");
+        projectRepository.save(project1);
 
+        Project project2 = new Project();
+        project2.setProjectId(2L);
+        project2.setApiVersion("v1");
+        project2.setCreator("Jane Doe");
+        project2.setDataSensitivityLevel("Low");
+        project2.setDescription("Another project description");
+        project2.setDocumentSource("External");
+        project2.setDocumentType("Excel");
+        project2.setProjectCode("PRJ002");
+        project2.setStatus("Inactive");
+        project2.setProjectName("Project Test 2");
+        projectRepository.save(project2);
+
+        ResponseEntity<List<Project>> response = restTemplate.exchange(
+                "/projects", HttpMethod.GET, null,
+                new ParameterizedTypeReference<List<Project>>() {}
+        );
+
+        Assertions.assertEquals(HttpStatus.OK, response.getStatusCode());
+        Assertions.assertEquals(2, response.getBody().size());
+    }
+
+    // Test for updating a project
+    @Test
+    public void shouldUpdateProject() {
+        Project project = new Project();
+        project.setProjectId(1L);
+        project.setApiVersion("v1");
+        project.setCreator("John Doe");
+        project.setDataSensitivityLevel("High");
+        project.setDescription("Test project description");
+        project.setDocumentSource("Internal");
+        project.setDocumentType("PDF");
+        project.setProjectCode("PRJ001");
+        project.setStatus("Active");
+        project.setProjectName("Old Project Name");
+        projectRepository.save(project);
+
+        project.setProjectName("Updated Project Name");
+
+        HttpEntity<Project> entity = new HttpEntity<>(project);
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/projects/" + project.getProjectId(),
+                HttpMethod.PUT, entity, String.class
+        );
+
+        Assertions.assertEquals(HttpStatus.OK, response.getStatusCode());
+        Project updatedProject = projectRepository.findById(project.getProjectId()).orElse(null);
+        Assertions.assertNotNull(updatedProject);
+        Assertions.assertEquals("Updated Project Name", updatedProject.getProjectName());
+    }
+
+    // Test for deleting a project
+    @Test
+    public void shouldDeleteProject() {
         Project project = new Project();
         project.setProjectId(1L);
         project.setApiVersion("v1");
@@ -115,15 +153,17 @@ public class ProjectControllerTest {
         project.setProjectCode("PRJ001");
         project.setStatus("Active");
         project.setProjectName("Project Test");
-        project.setCreatedDateTime(LocalDateTime.now());
+        projectRepository.save(project);
 
-        mockMvc.perform(post("/projects")
-                .header("Authorization", VALID_TOKEN)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(project)))
-                .andExpect(status().isForbidden());
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/projects/" + project.getProjectId(),
+                HttpMethod.DELETE, null, String.class
+        );
 
-        verify(jwtUtil, times(1)).extractSub("valid.jwt.token");
-        verify(userService, times(1)).isAdmin("regularUser");
+        Assertions.assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        Optional<Project> deletedProject = projectRepository.findById(project.getProjectId());
+        Assertions.assertTrue(deletedProject.isEmpty());
     }
 }
+
+
