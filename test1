@@ -1,69 +1,120 @@
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.*;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.web.client.RestTemplate;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-public class ProjectControllerIntegrationTest {
+@AutoConfigureMockMvc
+public class ProjectControllerTest {
 
     @Autowired
-    private RestTemplate restTemplate;
+    private TestRestTemplate restTemplate;
 
     @Autowired
     private ProjectRepository projectRepository;
 
-    @MockBean
-    private JwtUtil jwtUtil;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
-    @MockBean
-    private UserService userService;
+    private String adminToken;
 
     @BeforeEach
-    void setUp() {
-        projectRepository.deleteAll();
+    void setup() {
+        // Create schema if not already created
+        jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS omnidoc_management_studio;");
+        jdbcTemplate.execute("""
+            CREATE TABLE IF NOT EXISTS omnidoc_management_studio.projects (
+                project_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                project_name VARCHAR(255),
+                description VARCHAR(255),
+                api_version VARCHAR(50),
+                creator VARCHAR(255),
+                data_sensitivity_level VARCHAR(50),
+                document_source VARCHAR(100),
+                document_type VARCHAR(50),
+                project_code VARCHAR(100),
+                status VARCHAR(50),
+                created_date_time TIMESTAMP
+            );
+        """);
+
+        // Mock admin JWT token
+        adminToken = createJwtToken("adminUser", true);
+    }
+
+    private String createJwtToken(String username, boolean isAdmin) {
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("roles", isAdmin ? "ADMIN" : "USER")
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 600000))
+                .signWith(SignatureAlgorithm.HS256, "secretkey")
+                .compact();
     }
 
     @Test
-    public void shouldCreateProject() {
-        Mockito.when(jwtUtil.extractSub(Mockito.anyString())).thenReturn("admin");
-        Mockito.when(userService.isAdmin("admin")).thenReturn(true);
+    public void testCreateProject() {
+        Project project = new Project(1L, "Test Project", "Test Description", "v1", 
+                                      "John Doe", "High", "Internal", 
+                                      "PDF", "PRJ001", "Active", LocalDateTime.now());
 
-        Project project = new Project(1L, "Project Test", "Test Description");
+        ResponseEntity<Project> response = restTemplate.postForEntity("/api/projects",
+                new HttpEntity<>(project, createHeaders(adminToken)),
+                Project.class);
 
+        Assertions.assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        Assertions.assertNotNull(response.getBody());
+        Assertions.assertEquals("Test Project", response.getBody().getProjectName());
+    }
+
+    @Test
+    public void testGetProject() {
+        Project project = new Project(1L, "Test Project", "Test Description", "v1", 
+                                      "John Doe", "High", "Internal", 
+                                      "PDF", "PRJ001", "Active", LocalDateTime.now());
+        projectRepository.save(project);
+
+        ResponseEntity<Project> response = restTemplate.exchange(
+                "/api/projects/1", HttpMethod.GET,
+                new HttpEntity<>(createHeaders(adminToken)), Project.class);
+
+        Assertions.assertEquals(HttpStatus.OK, response.getStatusCode());
+        Assertions.assertEquals("Test Project", response.getBody().getProjectName());
+    }
+
+    @Test
+    public void testUpdateProject() {
+        Project project = new Project(1L, "Old Project", "Old Description", "v1", 
+                                      "John Doe", "High", "Internal", 
+                                      "PDF", "PRJ001", "Active", LocalDateTime.now());
+        projectRepository.save(project);
+
+        project.setProjectName("Updated Project");
+
+        restTemplate.exchange("/api/projects/1",
+                HttpMethod.PUT,
+                new HttpEntity<>(project, createHeaders(adminToken)),
+                Project.class);
+
+        Project updatedProject = projectRepository.findById(1L).orElseThrow();
+        Assertions.assertEquals("Updated Project", updatedProject.getProjectName());
+    }
+
+    @Test
+    public void testDeleteProject() {
+        Project project = new Project(1L, "Project to Delete", "To Be Deleted", "v1", 
+                                      "John Doe", "High", "Internal", 
+                                      "PDF", "PRJ001", "Active", LocalDateTime.now());
+        projectRepository.save(project);
+
+        ResponseEntity<Void> response = restTemplate.exchange("/api/projects/1",
+                HttpMethod.DELETE, new HttpEntity<>(createHeaders(adminToken)), Void.class);
+
+        Assertions.assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        Assertions.assertTrue(projectRepository.findById(1L).isEmpty());
+    }
+
+    private HttpHeaders createHeaders(String token) {
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer testtoken");
-        HttpEntity<Project> request = new HttpEntity<>(project, headers);
-
-        ResponseEntity<Project> response = restTemplate.postForEntity("/projects", request, Project.class);
-
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("Project Test", response.getBody().getProjectName());
+        headers.set("Authorization", "Bearer " + token);
+        return headers;
     }
 }
 
 
-<dependency>
-        <groupId>com.h2database</groupId>
-        <artifactId>h2</artifactId>
-        <scope>runtime</scope>
-    </dependency>
-
-
-
-spring.datasource.url=jdbc:h2:mem:testdb
-spring.datasource.driver-class-name=org.h2.Driver
-spring.datasource.username=sa
-spring.datasource.password=
-spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
-spring.jpa.hibernate.ddl-auto=create-drop
-spring.h2.console.enabled=true
-spring.main.allow-bean-definition-overriding=true
+spring.jpa.properties.hibernate.default_schema=omnidoc_management_studio
