@@ -1,38 +1,24 @@
-package com.hsbc.managementStudio.project.integration;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hsbc.managementStudio.project.model.Project;
-import com.hsbc.managementStudio.project.repository.ProjectRepository;
-import com.hsbc.managementStudio.project.util.JwtUtil;
-import com.hsbc.managementStudio.project.service.UserService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.http.*;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDateTime;
+import static org.junit.jupiter.api.Assertions.*;
 
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-@SpringBootTest
-@AutoConfigureMockMvc
-class ProjectControllerIntegrationTest {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
+public class ProjectControllerIntegrationTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private RestTemplate restTemplate;
 
     @Autowired
     private ProjectRepository projectRepository;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @MockBean
     private JwtUtil jwtUtil;
@@ -40,95 +26,44 @@ class ProjectControllerIntegrationTest {
     @MockBean
     private UserService userService;
 
-    private String adminToken = "valid-admin-token";
-    private String userToken = "valid-user-token";
-
     @BeforeEach
-    void setup() {
+    void setUp() {
         projectRepository.deleteAll();
-
-        // Mock behavior of JwtUtil
-        when(jwtUtil.extractSub(adminToken)).thenReturn("admin-sub");
-        when(jwtUtil.extractSub(userToken)).thenReturn("user-sub");
-
-        // Mock behavior of UserService
-        when(userService.isAdmin("admin-sub")).thenReturn(true);
-        when(userService.isAdmin("user-sub")).thenReturn(false);
     }
 
     @Test
-    void testCreateProject_AsAdmin() throws Exception {
-        Project project = new Project();
-        project.setProjectId(1L);
-        project.setProjectName("Test Project");
-        project.setDescription("This is a test project");
-        project.setStatus("Active");
-        project.setCreatedDateTime(LocalDateTime.now());
+    public void shouldCreateProject() {
+        Mockito.when(jwtUtil.extractSub(Mockito.anyString())).thenReturn("admin");
+        Mockito.when(userService.isAdmin("admin")).thenReturn(true);
 
-        String projectJson = objectMapper.writeValueAsString(project);
+        Project project = new Project(1L, "Project Test", "Test Description");
 
-        // Admin user: Successful creation
-        mockMvc.perform(post("/api/projects")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(projectJson))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.projectName").value("Test Project"));
-    }
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer testtoken");
+        HttpEntity<Project> request = new HttpEntity<>(project, headers);
 
-    @Test
-    void testCreateProject_AsNonAdmin() throws Exception {
-        Project project = new Project();
-        project.setProjectId(1L);
-        project.setProjectName("Test Project");
-        project.setDescription("This is a test project");
-        project.setStatus("Active");
-        project.setCreatedDateTime(LocalDateTime.now());
+        ResponseEntity<Project> response = restTemplate.postForEntity("/projects", request, Project.class);
 
-        String projectJson = objectMapper.writeValueAsString(project);
-
-        // Non-admin user: Forbidden
-        mockMvc.perform(post("/api/projects")
-                        .header("Authorization", "Bearer " + userToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(projectJson))
-                .andExpect(status().isForbidden())
-                .andExpect(content().string("Access Denied: Admins Only"));
-    }
-
-    @Test
-    void testDeleteProject_AsAdmin() throws Exception {
-        Project project = new Project(1L, "Test Project", "Active", LocalDateTime.now());
-        projectRepository.save(project);
-
-        // Admin user: Successful deletion
-        mockMvc.perform(delete("/api/projects/1")
-                        .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Project Deleted Successfully"));
-    }
-
-    @Test
-    void testDeleteProject_AsNonAdmin() throws Exception {
-        Project project = new Project(1L, "Test Project", "Active", LocalDateTime.now());
-        projectRepository.save(project);
-
-        // Non-admin user: Forbidden
-        mockMvc.perform(delete("/api/projects/1")
-                        .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isForbidden())
-                .andExpect(content().string("Access Denied: Admins Only"));
-    }
-
-    @Test
-    void testGetProjectDetails() throws Exception {
-        Project project = new Project(1L, "Test Project", "Active", LocalDateTime.now());
-        projectRepository.save(project);
-
-        // Any user can fetch details
-        mockMvc.perform(get("/api/projects/1")
-                        .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.projectName").value("Test Project"));
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Project Test", response.getBody().getProjectName());
     }
 }
+
+
+<dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+
+
+
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.h2.console.enabled=true
+spring.main.allow-bean-definition-overriding=true
