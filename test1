@@ -1,84 +1,100 @@
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.web.client.TestRestTemplate;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
+import org.springframework.http.*;
+import org.springframework.web.client.HttpClientErrorException;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class ProjectControllerTest {
+public class UserControllerTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
 
-    @MockBean
-    private JwtUtil jwtUtil;
+    private final String baseUrl = "/api/users";
+    private String token;  // JWT token for authorization
 
-    @MockBean
-    private UserService userService;
-
-    private String token = "Bearer mock-token";
+    private User testUser;
 
     @BeforeEach
-    public void setup() {
-        // Mock the JWT utility methods
-        when(jwtUtil.extractUsername("mock-token")).thenReturn("admin");
-        when(userService.isAdmin("admin")).thenReturn(true);
+    public void setUp() {
+        testUser = new User();
+        testUser.setUsername("johndoe");
+        testUser.setEmail("john.doe@example.com");
+
+        // Assuming you have a method to generate or mock the token
+        token = "mock-jwt-token"; // This should be replaced with a valid token mock
+
+        // Create user to test on
+        ResponseEntity<User> createResponse = restTemplate.postForEntity(baseUrl, testUser, User.class);
+        assertEquals(HttpStatus.CREATED, createResponse.getStatusCode());
     }
 
-    @Test
-    public void testCreateProject() {
-        Project project = new Project();
-        project.setProjectName("Test Project");
-        project.setProjectCode("PRJ001");
-        project.setCreator("John Doe");
-        project.setDescription("Test project description");
-        project.setApiVersion("v1");
-        project.setDataSensitivityLevel("High");
-        project.setDocumentSource("Internal");
-        project.setDocumentType("PDF");
-        project.setStatus("Active");
+    private HttpHeaders createHeadersWithAuthorization() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + token);
+        return headers;
+    }
 
-        ResponseEntity<Project> response = restTemplate.postForEntity("/api/projects", project, Project.class);
+    // Test: Create User
+    @Test
+    public void testCreateUser() {
+        HttpHeaders headers = createHeadersWithAuthorization();
+        HttpEntity<User> requestEntity = new HttpEntity<>(testUser, headers);
+
+        ResponseEntity<User> response = restTemplate.exchange(baseUrl, HttpMethod.POST, requestEntity, User.class);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody().getId());
+        assertEquals("johndoe", response.getBody().getUsername());
     }
 
+    // Test: Get User by ID
     @Test
-    public void testGetProject() {
-        Long projectId = 1L;
-        Project project = new Project();
-        project.setProjectId(projectId);
-        project.setProjectName("Test Project");
+    public void testGetUser() {
+        Long userId = testUser.getId();
+        HttpHeaders headers = createHeadersWithAuthorization();
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        when(jwtUtil.extractUsername("mock-token")).thenReturn("admin");
-        when(userService.isAdmin("admin")).thenReturn(true);
-
-        restTemplate.postForEntity("/api/projects", project, Project.class);
-
-        ResponseEntity<Project> response = restTemplate.getForEntity("/api/projects/1", Project.class);
+        ResponseEntity<User> response = restTemplate.exchange(baseUrl + "/" + userId, HttpMethod.GET, entity, User.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Test Project", response.getBody().getProjectName());
+        assertEquals("johndoe", response.getBody().getUsername());
     }
 
+    // Test: Update User
     @Test
-    public void testDeleteProject() {
-        Long projectId = 1L;
+    public void testUpdateUser() {
+        Long userId = testUser.getId();
+        testUser.setEmail("john.newemail@example.com");
 
-        when(jwtUtil.extractUsername("mock-token")).thenReturn("admin");
-        when(userService.isAdmin("admin")).thenReturn(true);
+        HttpHeaders headers = createHeadersWithAuthorization();
+        HttpEntity<User> entity = new HttpEntity<>(testUser, headers);
 
-        restTemplate.delete("/api/projects/{id}", projectId);
+        restTemplate.exchange(baseUrl + "/" + userId, HttpMethod.PUT, entity, Void.class);
 
-        ResponseEntity<Project> response = restTemplate.getForEntity("/api/projects/1", Project.class);
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        // Verify that the update happened
+        ResponseEntity<User> updatedUserResponse = restTemplate.exchange(baseUrl + "/" + userId, HttpMethod.GET, entity, User.class);
+        assertEquals("john.newemail@example.com", updatedUserResponse.getBody().getEmail());
+    }
+
+    // Test: Delete User
+    @Test
+    public void testDeleteUser() {
+        Long userId = testUser.getId();
+
+        HttpHeaders headers = createHeadersWithAuthorization();
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        restTemplate.exchange(baseUrl + "/" + userId, HttpMethod.DELETE, entity, Void.class);
+
+        // Try to fetch the deleted user
+        try {
+            restTemplate.exchange(baseUrl + "/" + userId, HttpMethod.GET, entity, User.class);
+            fail("Expected HttpClientErrorException");
+        } catch (HttpClientErrorException.NotFound e) {
+            assertEquals(404, e.getRawStatusCode());
+        }
     }
 }
